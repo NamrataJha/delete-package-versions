@@ -32,7 +32,7 @@ export function deleteVersions(input: Input): Observable<boolean> {
   console.log(String(input.ignoreVersions))
   if (
     input.deletePreReleaseVersions == 'true' &&
-    (input.numOldVersionsToDelete > 1 || String(input.ignoreVersions) != '^$')
+    (input.numOldVersionsToDelete > 1 || String(input.ignoreVersions) != '/^$/')
   ) {
     return throwError('Input combination is not valid.')
   }
