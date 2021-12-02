@@ -32,25 +32,9 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        return version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).pipe(operators_1.map(versionInfo => {
-            const numberVersionsToDelete = versionInfo.length - input.minVersionsToKeep;
-            if (input.minVersionsToKeep > 0) {
-                return numberVersionsToDelete <= 0
-                    ? []
-                    : versionInfo
-                        .filter(info => !input.ignoreVersions.test(info.version))
-                        .map(info => info.id)
-                        .slice(0, -input.minVersionsToKeep);
-            }
-            else {
-                return numberVersionsToDelete <= 0
-                    ? []
-                    : versionInfo
-                        .filter(info => !input.ignoreVersions.test(info.version))
-                        .map(info => info.id)
-                        .slice(0, numberVersionsToDelete);
-            }
-        }));
+        if (input.minVersionsToKeep < 0) {
+            return version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.token).pipe(operators_1.map(versionInfo => versionInfo.map(info => info.id)));
+        }
     }
     return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
 }
@@ -100,11 +84,21 @@ class Input {
         this.ignoreVersions = validatedParams.ignoreVersions;
         this.deletePreReleaseVersions = validatedParams.deletePreReleaseVersions;
         this.token = validatedParams.token;
-        if (this.minVersionsToKeep > 0) {
-            this.numOldVersionsToDelete = 100 - this.minVersionsToKeep;
+        if (this.minVersionsToKeep > 0 && this.numOldVersionsToDelete > 1) {
+            try {
+                throw new Error('Input combination is not valid');
+            }
+            catch (e) {
+                console.log(e.message);
+            }
+        }
+        if (this.minVersionsToKeep >= 0) {
+            this.numOldVersionsToDelete = 100;
         }
         if (this.deletePreReleaseVersions == 'true') {
-            this.numOldVersionsToDelete = 100 - this.minVersionsToKeep;
+            this.numOldVersionsToDelete = 100;
+            this.minVersionsToKeep =
+                this.minVersionsToKeep > 0 ? this.minVersionsToKeep : 0;
             this.ignoreVersions = new RegExp('^(0|[1-9]\\d*)((\\.(0|[1-9]\\d*))*)$');
         }
     }
@@ -190,6 +184,7 @@ const query = `
           node {
             name
             versions(last: $last) {
+              totalcount
               edges {
                 node {
                   id

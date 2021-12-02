@@ -31,6 +31,7 @@ const query = `
           node {
             name
             versions(last: $last) {
+              totalcount
               edges {
                 node {
                   id
