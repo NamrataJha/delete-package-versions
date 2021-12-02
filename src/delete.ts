@@ -27,7 +27,14 @@ export function getVersionIds(input: Input): Observable<string[]> {
 
 export function deleteVersions(input: Input): Observable<boolean> {
   if (input.minVersionsToKeep > 0 && input.numOldVersionsToDelete > 1) {
-    return throwError(' Input combination is not valid ')
+    return throwError('Input combination is not valid.')
+  }
+  console.log(String(input.ignoreVersions))
+  if (
+    input.deletePreReleaseVersions == 'true' &&
+    (input.numOldVersionsToDelete > 1 || String(input.ignoreVersions) != '^$')
+  ) {
+    return throwError('Input combination is not valid.')
   }
 
   if (input.minVersionsToKeep >= 0) {

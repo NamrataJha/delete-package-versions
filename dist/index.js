@@ -41,7 +41,12 @@ function getVersionIds(input) {
 exports.getVersionIds = getVersionIds;
 function deleteVersions(input) {
     if (input.minVersionsToKeep > 0 && input.numOldVersionsToDelete > 1) {
-        return rxjs_1.throwError(' Input combination is not valid ');
+        return rxjs_1.throwError('Input combination is not valid.');
+    }
+    console.log(String(input.ignoreVersions));
+    if (input.deletePreReleaseVersions == 'true' &&
+        (input.numOldVersionsToDelete > 1 || String(input.ignoreVersions) != '^$')) {
+        return rxjs_1.throwError('Input combination is not valid.');
     }
     if (input.minVersionsToKeep >= 0) {
         input.numOldVersionsToDelete = 100;
