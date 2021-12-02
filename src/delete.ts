@@ -26,6 +26,21 @@ export function getVersionIds(input: Input): Observable<string[]> {
 }
 
 export function deleteVersions(input: Input): Observable<boolean> {
+  if (input.minVersionsToKeep > 0 && input.numOldVersionsToDelete > 1) {
+    return throwError(' Input combination is not valid ')
+  }
+
+  if (input.minVersionsToKeep >= 0) {
+    input.numOldVersionsToDelete = 100
+  }
+
+  if (input.deletePreReleaseVersions == 'true') {
+    input.numOldVersionsToDelete = 100
+    input.minVersionsToKeep =
+      input.minVersionsToKeep > 0 ? input.minVersionsToKeep : 0
+    input.ignoreVersions = new RegExp('^(0|[1-9]\\d*)((\\.(0|[1-9]\\d*))*)$')
+  }
+
   if (!input.token) {
     return throwError('No token found')
   }

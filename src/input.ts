@@ -1,4 +1,5 @@
 import {error} from '@actions/core'
+import {throwError} from 'rxjs'
 
 export interface InputParams {
   packageVersionIds?: string[]
@@ -47,25 +48,6 @@ export class Input {
     this.ignoreVersions = validatedParams.ignoreVersions
     this.deletePreReleaseVersions = validatedParams.deletePreReleaseVersions
     this.token = validatedParams.token
-
-    if (this.minVersionsToKeep > 0 && this.numOldVersionsToDelete > 1) {
-      try {
-        throw new Error('Input combination is not valid')
-      } catch (e) {
-        console.log((<Error>e).message)
-      }
-    }
-
-    if (this.minVersionsToKeep >= 0) {
-      this.numOldVersionsToDelete = 100
-    }
-
-    if (this.deletePreReleaseVersions == 'true') {
-      this.numOldVersionsToDelete = 100
-      this.minVersionsToKeep =
-        this.minVersionsToKeep > 0 ? this.minVersionsToKeep : 0
-      this.ignoreVersions = new RegExp('^(0|[1-9]\\d*)((\\.(0|[1-9]\\d*))*)$')
-    }
   }
 
   hasOldestVersionQueryInfo(): boolean {
