@@ -56,7 +56,6 @@ export class Input {
       this.repo &&
       this.packageName &&
       this.numOldVersionsToDelete > 0 &&
-      this.minVersionsToKeep >= 0 &&
       this.token
     )
   }
