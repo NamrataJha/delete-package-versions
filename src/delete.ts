@@ -1,7 +1,7 @@
 import {Input} from './input'
-import {Observable, of, throwError} from 'rxjs'
-import {deletePackageVersions, getOldestVersions} from './version'
-import {concatMap, map} from 'rxjs/operators'
+import {asapScheduler, merge, Observable, of, scheduled, throwError} from 'rxjs'
+import {deletePackageVersions, getOldestVersions, VersionInfo} from './version'
+import {concatMap, map, mergeAll} from 'rxjs/operators'
 
 export function getVersionIds(input: Input): Observable<string[]> {
   if (input.packageVersionIds.length > 0) {
@@ -9,7 +9,40 @@ export function getVersionIds(input: Input): Observable<string[]> {
   }
 
   if (input.hasOldestVersionQueryInfo()) {
+    var deletable = new Observable<string[]>()
     if (input.minVersionsToKeep < 0) {
+      while (
+        deletable.pipe(map(versionInfo => versionInfo.length)) !==
+        of(input.numOldVersionsToDelete)
+      ) {
+        var deleteVersionIds = getOldestVersions(
+          input.owner,
+          input.repo,
+          input.packageName,
+          2,
+          input.token
+        )
+
+        scheduled(
+          [
+            deletable,
+            deleteVersionIds.pipe(
+              map(versionInfo =>
+                versionInfo
+                  .filter(info => !input.ignoreVersions.test(info.version))
+                  .map(info => info.id)
+                  .slice(0, input.numOldVersionsToDelete)
+              )
+            )
+          ],
+          asapScheduler
+        ).pipe(mergeAll())
+      }
+    }
+
+    return deletable
+
+    /*
       return getOldestVersions(
         input.owner,
         input.repo,
@@ -17,7 +50,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
         input.numOldVersionsToDelete,
         input.token
       ).pipe(map(versionInfo => versionInfo.map(info => info.id)))
-    }
+      */
   }
 
   return throwError(
@@ -26,10 +59,14 @@ export function getVersionIds(input: Input): Observable<string[]> {
 }
 
 export function deleteVersions(input: Input): Observable<boolean> {
+  if (!input.token) {
+    return throwError('No token found')
+  }
+
   if (input.minVersionsToKeep > 0 && input.numOldVersionsToDelete > 1) {
     return throwError('Input combination is not valid.')
   }
-  console.log(String(input.ignoreVersions))
+
   if (
     input.deletePreReleaseVersions == 'true' &&
     (input.numOldVersionsToDelete > 1 || String(input.ignoreVersions) != '/^$/')
@@ -37,19 +74,10 @@ export function deleteVersions(input: Input): Observable<boolean> {
     return throwError('Input combination is not valid.')
   }
 
-  if (input.minVersionsToKeep >= 0) {
-    input.numOldVersionsToDelete = 100
-  }
-
   if (input.deletePreReleaseVersions == 'true') {
-    input.numOldVersionsToDelete = 100
     input.minVersionsToKeep =
       input.minVersionsToKeep > 0 ? input.minVersionsToKeep : 0
     input.ignoreVersions = new RegExp('^(0|[1-9]\\d*)((\\.(0|[1-9]\\d*))*)$')
-  }
-
-  if (!input.token) {
-    return throwError('No token found')
   }
 
   if (input.numOldVersionsToDelete <= 0) {

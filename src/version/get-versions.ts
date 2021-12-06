@@ -19,6 +19,10 @@ export interface GetVersionsQueryResponse {
           }
         }
       }[]
+      pageInfo: {
+        startCursor: string
+        hasPreviousPage: boolean
+      }
     }
   }
 }
@@ -31,12 +35,15 @@ const query = `
           node {
             name
             versions(last: $last) {
-              totalcount
               edges {
                 node {
                   id
                   version
                 }
+              }
+              pageInfo{
+                startCursor
+                hasPreviousPage
               }
             }
           }
@@ -74,6 +81,8 @@ export function queryForOldestVersions(
   )
 }
 
+//Check in delete.ts
+
 export function getOldestVersions(
   owner: string,
   repo: string,
@@ -90,7 +99,7 @@ export function getOldestVersions(
   ).pipe(
     map(result => {
       if (result.repository.packages.edges.length < 1) {
-        console.log(
+        throwError(
           `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
         )
         return []
@@ -98,11 +107,7 @@ export function getOldestVersions(
 
       const versions = result.repository.packages.edges[0].node.versions.edges
 
-      if (versions.length !== numVersions) {
-        console.log(
-          `number of versions requested was: ${numVersions}, but found: ${versions.length}`
-        )
-      }
+      console.log(`graphql call`)
 
       return versions
         .map(value => ({id: value.node.id, version: value.node.version}))
@@ -110,3 +115,87 @@ export function getOldestVersions(
     })
   )
 }
+
+/*
+check here
+export function getOldestVersions(
+  owner: string,
+  repo: string,
+  packageName: string,
+  numVersions: number,
+  token: string,
+  firstCall: boolean
+): Observable<VersionInfo[]> {
+
+  const firstCallResult = queryForOldestVersions(
+    owner,
+    repo,
+    packageName,
+    100,
+    token
+  )
+
+  var paginate = false
+
+  firstCallResult.pipe(
+    map( result => {
+      if (result.repository.packages.edges.length < 1){
+        console.log(`packages: ${packageName} not found for owner: ${owner} in repo: ${repo}`)
+        return []
+      }
+      const versions = result.repository.packages.edges[0].node.versions.edges
+
+
+
+      if (versions.length < numVersions){
+        console.log(
+          `number of versions requested was: ${numVersions}, but found: ${versions.length}`
+        )
+      }
+
+    })
+  )
+}
+*/
+
+/*
+Original
+export function getOldestVersions(
+  owner: string,
+  repo: string,
+  packageName: string,
+  numVersions: number,
+  token: string
+): Observable<VersionInfo[]> {
+  return queryForOldestVersions(
+    owner,
+    repo,
+    packageName,
+    numVersions,
+    token
+  ).pipe(
+    map(result => { 
+      if (result.repository.packages.edges.length < 1) {
+        console.log(
+          `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
+        )
+        return []
+      }
+
+      const versions = result.repository.packages.edges[0].node.versions.edges
+      
+      
+      if (versions.length !== numVersions) {
+        console.log(
+          `number of versions requested was: ${numVersions}, but found: ${versions.length}`
+        )
+      }
+      
+
+      return versions
+        .map(value => ({id: value.node.id, version: value.node.version}))
+        .reverse()
+    })
+  )
+}
+*/
