@@ -9,12 +9,15 @@ export function getVersionIds(input: Input): Observable<string[]> {
   }
 
   if (input.hasOldestVersionQueryInfo()) {
+    console.log('check point 4')
     var deletable = new Observable<string[]>()
     if (input.minVersionsToKeep < 0) {
+      console.log('check point 3')
       while (
         deletable.pipe(map(versionInfo => versionInfo.length)) !==
         of(input.numOldVersionsToDelete)
       ) {
+        console.log('check point 2')
         var deleteVersionIds = getOldestVersions(
           input.owner,
           input.repo,
@@ -39,7 +42,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
         ).pipe(mergeAll())
       }
     }
-
+    console.log('check point 1')
     return deletable
 
     /*

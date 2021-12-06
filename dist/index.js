@@ -32,10 +32,13 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
+        console.log('check point 4');
         var deletable = new rxjs_1.Observable();
         if (input.minVersionsToKeep < 0) {
+            console.log('check point 3');
             while (deletable.pipe(operators_1.map(versionInfo => versionInfo.length)) !==
                 rxjs_1.of(input.numOldVersionsToDelete)) {
+                console.log('check point 2');
                 var deleteVersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, 2, input.token);
                 rxjs_1.scheduled([
                     deletable,
@@ -46,6 +49,7 @@ function getVersionIds(input) {
                 ], rxjs_1.asapScheduler).pipe(operators_1.mergeAll());
             }
         }
+        console.log('check point 1');
         return deletable;
         /*
           return getOldestVersions(
