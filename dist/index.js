@@ -243,7 +243,7 @@ function queryForOldestVersions(owner, repo, packageName, numVersions, cursor, t
             repo,
             package: packageName,
             last: numVersions,
-            cursor,
+            before: cursor,
             headers: {
                 Accept: 'application/vnd.github.packages-preview+json'
             }
