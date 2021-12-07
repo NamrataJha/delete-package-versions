@@ -32,7 +32,10 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        return version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(versionInfo => versionInfo.map(info => info.id)));
+        const res = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(versionInfo => versionInfo.map(info => info.id)));
+        console.log('main call');
+        res.pipe(operators_1.map(value => value.map(info => console.log(`package: ${info}`))));
+        return res;
     }
     return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
 }

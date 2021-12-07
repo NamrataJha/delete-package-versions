@@ -9,7 +9,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
   }
 
   if (input.hasOldestVersionQueryInfo()) {
-    return getOldestVersions(
+    const res = getOldestVersions(
       input.owner,
       input.repo,
       input.packageName,
@@ -18,6 +18,11 @@ export function getVersionIds(input: Input): Observable<string[]> {
       '',
       input.token
     ).pipe(map(versionInfo => versionInfo.map(info => info.id)))
+
+    console.log('main call')
+    res.pipe(map(value => value.map(info => console.log(`package: ${info}`))))
+
+    return res
   }
 
   return throwError(
