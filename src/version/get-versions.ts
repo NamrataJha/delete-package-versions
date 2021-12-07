@@ -288,25 +288,19 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
     input.token
   )
 
-  const a = temp.pipe.length
-  const b = temp.pipe(map(value => value.length < input.numOldVersionsToDelete))
+  let tempLength = 0
+  temp.subscribe(value => (tempLength = value.length))
 
-  console.log(`a: ${a}, b: ${b}, `)
-
-  if (temp.pipe(map(value => value.length === 0))) {
+  if (tempLength === 0) {
     return throwError(
       `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
     )
   }
-
+  let idsLength = 0
   if (input.minVersionsToKeep < 0) {
     console.log('in if condition')
-    while (
-      resultIds.pipe(
-        map(value => value.length < input.numOldVersionsToDelete)
-      ) &&
-      paginate
-    ) {
+    do {
+      temp.subscribe(value => (idsLength += value.length))
       console.log('In loop for pagination')
       resultIds = concat(resultIds, temp)
       temp = getOldestVersions(
@@ -317,7 +311,11 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
         input.ignoreVersions,
         input.token
       )
-    }
+    } while (idsLength < input.minVersionsToKeep && paginate)
+
+    return resultIds.pipe(
+      map(value => value.slice(0, input.numOldVersionsToDelete))
+    )
   }
 
   return resultIds
