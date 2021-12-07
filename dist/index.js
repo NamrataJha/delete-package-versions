@@ -193,13 +193,13 @@ const query = `
     }
   }`;
 const paginatequery = `
-  query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!, $after: String!) {
+  query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!, $before: String!) {
     repository(owner: $owner, name: $repo) {
       packages(first: 1, names: [$package]) {
         edges {
           node {
             name
-            versions(last: $last, after: $after) {
+            versions(last: $last, before: $before) {
               edges {
                 node {
                   id
@@ -225,7 +225,7 @@ function queryForOldestVersions(owner, repo, packageName, numVersions, cursor, t
             repo,
             package: packageName,
             last: numVersions,
-            cursor,
+            before: cursor,
             headers: {
                 Accept: 'application/vnd.github.packages-preview+json'
             }
