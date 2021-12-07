@@ -9,8 +9,8 @@ export interface VersionInfo {
 }
 
 export interface PageInfo {
-  cursor: string
-  paginate: boolean
+  startCursor: string
+  hasPreviousPage: boolean
 }
 
 export interface GetVersionsQueryResponse {
@@ -89,6 +89,7 @@ export function queryForOldestVersions(
   cursor: string,
   token: string
 ): Observable<GetVersionsQueryResponse> {
+  console.log(`cursor: ${cursor}`)
   if (cursor === '') {
     console.log('graphql call without pagination')
     return from(
@@ -156,18 +157,19 @@ export function getOldestVersions(
     token
   ).pipe(
     expand(({repository}) =>
-      repository.packages.edges[0].node.versions.pageInfo.paginate
+      repository.packages.edges[0].node.versions.pageInfo.hasPreviousPage
         ? queryForOldestVersions(
             owner,
             repo,
             packageName,
             2,
-            repository.packages.edges[0].node.versions.pageInfo.cursor,
+            repository.packages.edges[0].node.versions.pageInfo.startCursor,
             token
           )
         : EMPTY
     ),
     map(result => {
+      console.log(`in map`)
       if (result.repository.packages.edges.length < 1) {
         console.log(
           `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
