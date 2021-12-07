@@ -11,8 +11,8 @@ export interface VersionInfo {
   length: number
 }
 
-const paginationCursor = ''
-const paginate = false
+let paginationCursor = ''
+let paginate = false
 
 export interface GetVersionsQueryResponse {
   repository: {
@@ -172,8 +172,8 @@ export function getOldestVersions(
       const paginationInfo =
         result.repository.packages.edges[0].node.versions.pageInfo
 
-      //paginationCursor = paginationInfo.startCursor
-      //paginate = paginationInfo.hasPreviousPage
+      paginationCursor = paginationInfo.startCursor
+      paginate = paginationInfo.hasPreviousPage
 
       console.log(`cursor: ${paginationCursor}, paginate: ${paginate}`)
       if (versions.length !== numVersions) {
@@ -204,13 +204,18 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
     input.owner,
     input.repo,
     input.packageName,
-    100,
+    2,
     input.ignoreVersions,
     input.token
   )
 
   temp.pipe(
     map(value => {
+      console.log(
+        `checking if package exists: ${
+          value.length
+        }, condition: ${value.length === 0}`
+      )
       if (value.length === 0) {
         return throwError(
           `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
@@ -223,14 +228,16 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
     let resultLength = 0
     temp.pipe(
       map(value => {
+        console.log(`inside observable`)
         do {
+          console.log(`append observable`)
           resultLength += value.length
           resultIds = concat(resultIds, temp)
           temp = getOldestVersions(
             input.owner,
             input.repo,
             input.packageName,
-            100,
+            2,
             input.ignoreVersions,
             input.token
           )

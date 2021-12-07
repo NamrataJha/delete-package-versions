@@ -168,8 +168,8 @@ exports.getRequiredVersions = exports.getOldestVersions = exports.queryForOldest
 const rxjs_1 = __nccwpck_require__(5805);
 const operators_1 = __nccwpck_require__(7801);
 const graphql_1 = __nccwpck_require__(6320);
-const paginationCursor = '';
-const paginate = false;
+let paginationCursor = '';
+let paginate = false;
 const query = `
   query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!) {
     repository(owner: $owner, name: $repo) {
@@ -265,8 +265,8 @@ function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions
         }
         const versions = result.repository.packages.edges[0].node.versions.edges.node;
         const paginationInfo = result.repository.packages.edges[0].node.versions.pageInfo;
-        //paginationCursor = paginationInfo.startCursor
-        //paginate = paginationInfo.hasPreviousPage
+        paginationCursor = paginationInfo.startCursor;
+        paginate = paginationInfo.hasPreviousPage;
         console.log(`cursor: ${paginationCursor}, paginate: ${paginate}`);
         if (versions.length !== numVersions) {
             console.log(`number of versions requested was: ${numVersions}, but found: ${versions.length}`);
@@ -287,8 +287,9 @@ function getRequiredVersions(input) {
     let resultIds = new rxjs_1.Observable();
     console.log(`point 2`);
     //make first graphql call
-    let temp = getOldestVersions(input.owner, input.repo, input.packageName, 100, input.ignoreVersions, input.token);
+    let temp = getOldestVersions(input.owner, input.repo, input.packageName, 2, input.ignoreVersions, input.token);
     temp.pipe(operators_1.map(value => {
+        console.log(`checking if package exists: ${value.length}, condition: ${value.length === 0}`);
         if (value.length === 0) {
             return rxjs_1.throwError(`package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`);
         }
@@ -296,10 +297,12 @@ function getRequiredVersions(input) {
     if (input.minVersionsToKeep < 0) {
         let resultLength = 0;
         temp.pipe(operators_1.map(value => {
+            console.log(`inside observable`);
             do {
+                console.log(`append observable`);
                 resultLength += value.length;
                 resultIds = rxjs_1.concat(resultIds, temp);
-                temp = getOldestVersions(input.owner, input.repo, input.packageName, 100, input.ignoreVersions, input.token);
+                temp = getOldestVersions(input.owner, input.repo, input.packageName, 2, input.ignoreVersions, input.token);
             } while (resultLength < input.numOldVersionsToDelete ||
                 value.map(info => info.paginate));
         }));
