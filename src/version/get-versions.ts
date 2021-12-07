@@ -103,6 +103,7 @@ export function queryForOldestVersions(
         repo,
         package: packageName,
         last: numVersions,
+        paginationCursor,
         headers: {
           Accept: 'application/vnd.github.packages-preview+json'
         }
