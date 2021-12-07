@@ -289,7 +289,7 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
   )
 
   let tempLength = 0
-  temp.subscribe(value => (tempLength = value.length))
+  temp.pipe(map(value => (tempLength = value.length)))
 
   if (tempLength === 0) {
     return throwError(
@@ -300,7 +300,7 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
   if (input.minVersionsToKeep < 0) {
     console.log('in if condition')
     do {
-      temp.subscribe(value => (idsLength += value.length))
+      temp.pipe(map(value => (idsLength += value.length)))
       console.log('In loop for pagination')
       resultIds = concat(resultIds, temp)
       temp = getOldestVersions(
@@ -311,6 +311,7 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
         input.ignoreVersions,
         input.token
       )
+      console.log(`after loop`)
     } while (idsLength < input.minVersionsToKeep && paginate)
 
     return resultIds.pipe(
