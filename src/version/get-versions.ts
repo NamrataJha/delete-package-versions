@@ -288,14 +288,15 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
     input.token
   )
 
+  const a = temp.pipe(map(value => value.length))
+  const b = temp.pipe(map(value => value.length < input.numOldVersionsToDelete))
+  console.log(`a: ${a}, b: ${b}, `)
+
   if (temp.pipe(map(value => value.length === 0))) {
     return throwError(
       `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
     )
   }
-  const a = temp.pipe(map(value => value.length))
-  const b = temp.pipe(map(value => value.length < input.numOldVersionsToDelete))
-  console.log(`a: ${a}, b: ${b}, `)
 
   if (input.minVersionsToKeep < 0) {
     console.log('in if condition')
