@@ -6,10 +6,13 @@ import {Input} from '../input'
 
 export interface VersionInfo {
   id: string
+  cursor: string
+  paginate: boolean
+  length: number
 }
 
-let paginationCursor = ''
-let paginate = false
+const paginationCursor = ''
+const paginate = false
 
 export interface GetVersionsQueryResponse {
   repository: {
@@ -140,93 +143,6 @@ export function queryForOldestVersions(
   }
 }
 
-/*Check in delete.ts
-
-export function getOldestVersions(
-  owner: string,
-  repo: string,
-  packageName: string,
-  numVersions: number,
-  minVersions: number,
-  ignoreVersions: RegExp,
-  token: string
-): Observable<VersionInfo[]> {
-  var deletable = new Observable<string[]>()
-  var deleteVersionIds = queryForOldestVersions(
-    owner,
-    repo,
-    packageName,
-    100,
-    token
-  ).pipe(
-    map(result => {
-      // revisit this
-      if (result.repository.packages.edges.length < 1) {
-        throwError(
-          `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
-        )
-        return []
-      }
-
-      const versions = result.repository.packages.edges[0].node.versions.edges
-      const pageInfo = result.repository.packages.pageInfo
-
-      console.log(`graphql call`)
-
-      var tempVersions = versions
-      .map(value => ({id: value.node.id, version: value.node.version}))
-      .reverse()
-
-      
-    })
-  )
-}*/
-
-/*
-check here
-export function getOldestVersions(
-  owner: string,
-  repo: string,
-  packageName: string,
-  numVersions: number,
-  token: string,
-  firstCall: boolean
-): Observable<VersionInfo[]> {
-
-  const firstCallResult = queryForOldestVersions(
-    owner,
-    repo,
-    packageName,
-    100,
-    token
-  )
-
-  var paginate = false
-
-  firstCallResult.pipe(
-    map( result => {
-      if (result.repository.packages.edges.length < 1){
-        console.log(`packages: ${packageName} not found for owner: ${owner} in repo: ${repo}`)
-        return []
-      }
-      const versions = result.repository.packages.edges[0].node.versions.edges
-
-
-
-      if (versions.length < numVersions){
-        console.log(
-          `number of versions requested was: ${numVersions}, but found: ${versions.length}`
-        )
-      }
-
-    })
-  )
-}
-*/
-
-/*
-Original*/
-
 export function getOldestVersions(
   owner: string,
   repo: string,
@@ -256,8 +172,8 @@ export function getOldestVersions(
       const paginationInfo =
         result.repository.packages.edges[0].node.versions.pageInfo
 
-      paginationCursor = paginationInfo.startCursor
-      paginate = paginationInfo.hasPreviousPage
+      //paginationCursor = paginationInfo.startCursor
+      //paginate = paginationInfo.hasPreviousPage
 
       console.log(`cursor: ${paginationCursor}, paginate: ${paginate}`)
       if (versions.length !== numVersions) {
@@ -268,7 +184,12 @@ export function getOldestVersions(
 
       return versions
         .filter(value => !ignoreVersions.test(value.version))
-        .map(value => ({id: value.id}))
+        .map(value => ({
+          id: value.id,
+          cursor: paginationInfo.startCursor,
+          paginate: paginationInfo.hasPreviousPage,
+          length: versions.length
+        }))
         .reverse()
     })
   )
@@ -288,15 +209,40 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
     input.token
   )
 
-  let tempLength = 1
-  temp.pipe(map(value => (tempLength = value.length)))
-  console.log(`tempLength = ${tempLength}`)
+  temp.pipe(
+    map(value => {
+      if (value.length === 0) {
+        return throwError(
+          `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
+        )
+      }
+    })
+  )
 
-  if (tempLength === 0) {
-    return throwError(
-      `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
+  if (input.minVersionsToKeep < 0) {
+    let resultLength = 0
+    temp.pipe(
+      map(value => {
+        do {
+          resultLength += value.length
+          resultIds = concat(resultIds, temp)
+          temp = getOldestVersions(
+            input.owner,
+            input.repo,
+            input.packageName,
+            100,
+            input.ignoreVersions,
+            input.token
+          )
+        } while (
+          resultLength < input.numOldVersionsToDelete ||
+          value.map(info => info.paginate)
+        )
+      })
     )
+    return resultIds.pipe(map(value => value.map(info => info.id)))
   }
+  /*
   let idsLength = 0
   if (input.minVersionsToKeep < 0) {
     console.log('in if condition')
@@ -317,6 +263,6 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
 
     return resultIds.pipe(map(value => value.map(info => info.id)))
   }
-
+  */
   return resultIds.pipe(map(value => value.map(info => info.id)))
 }
