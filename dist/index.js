@@ -357,7 +357,7 @@ function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions
         }
         return versions
             .filter(value => !ignoreVersions.test(value.version))
-            .map(value => value.id)
+            .map(value => ({ id: value.id }))
             .reverse();
     }));
 }
@@ -367,8 +367,9 @@ function getRequiredVersions(input) {
     console.log(`point 2`);
     //make first graphql call
     let temp = getOldestVersions(input.owner, input.repo, input.packageName, 100, input.ignoreVersions, input.token);
-    let tempLength = 0;
+    let tempLength = 1;
     temp.pipe(operators_1.map(value => (tempLength = value.length)));
+    console.log(`tempLength = ${tempLength}`);
     if (tempLength === 0) {
         return rxjs_1.throwError(`package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`);
     }
@@ -382,9 +383,9 @@ function getRequiredVersions(input) {
             temp = getOldestVersions(input.owner, input.repo, input.packageName, 100, input.ignoreVersions, input.token);
             console.log(`after loop`);
         } while (idsLength < input.minVersionsToKeep && paginate);
-        return resultIds.pipe(operators_1.map(value => value.slice(0, input.numOldVersionsToDelete)));
+        return resultIds.pipe(operators_1.map(value => value.map(info => info.id)));
     }
-    return resultIds;
+    return resultIds.pipe(operators_1.map(value => value.map(info => info.id)));
 }
 exports.getRequiredVersions = getRequiredVersions;
 

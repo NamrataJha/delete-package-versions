@@ -234,7 +234,7 @@ export function getOldestVersions(
   numVersions: number,
   ignoreVersions: RegExp,
   token: string
-): Observable<string[]> {
+): Observable<VersionInfo[]> {
   return queryForOldestVersions(
     owner,
     repo,
@@ -268,14 +268,14 @@ export function getOldestVersions(
 
       return versions
         .filter(value => !ignoreVersions.test(value.version))
-        .map(value => value.id)
+        .map(value => ({id: value.id}))
         .reverse()
     })
   )
 }
 
 export function getRequiredVersions(input: Input): Observable<string[]> {
-  let resultIds = new Observable<string[]>()
+  let resultIds = new Observable<VersionInfo[]>()
   console.log(`point 2`)
   //make first graphql call
 
@@ -288,8 +288,9 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
     input.token
   )
 
-  let tempLength = 0
+  let tempLength = 1
   temp.pipe(map(value => (tempLength = value.length)))
+  console.log(`tempLength = ${tempLength}`)
 
   if (tempLength === 0) {
     return throwError(
@@ -314,10 +315,8 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
       console.log(`after loop`)
     } while (idsLength < input.minVersionsToKeep && paginate)
 
-    return resultIds.pipe(
-      map(value => value.slice(0, input.numOldVersionsToDelete))
-    )
+    return resultIds.pipe(map(value => value.map(info => info.id)))
   }
 
-  return resultIds
+  return resultIds.pipe(map(value => value.map(info => info.id)))
 }
