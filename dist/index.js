@@ -342,6 +342,7 @@ export function getOldestVersions(
 Original*/
 function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, token) {
     return queryForOldestVersions(owner, repo, packageName, numVersions, token).pipe(operators_1.map(result => {
+        console.log(`point 1`);
         if (result.repository.packages.edges.length < 1) {
             console.log(`package: ${packageName} not found for owner: ${owner} in repo: ${repo}`);
             return [];
@@ -350,12 +351,10 @@ function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions
         const paginationInfo = result.repository.packages.edges[0].node.versions.pageInfo;
         paginationCursor = paginationInfo.startCursor;
         paginate = paginationInfo.hasPreviousPage;
-        /*
+        console.log(`cursor: ${paginationCursor}, paginate: ${paginate}`);
         if (versions.length !== numVersions) {
-          console.log(
-            `number of versions requested was: ${numVersions}, but found: ${versions.length}`
-          )
-        }*/
+            console.log(`number of versions requested was: ${numVersions}, but found: ${versions.length}`);
+        }
         return versions
             .filter(value => !ignoreVersions.test(value.version))
             .map(value => value.id)
@@ -365,14 +364,18 @@ function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions
 exports.getOldestVersions = getOldestVersions;
 function getRequiredVersions(input) {
     let resultIds = new rxjs_1.Observable();
+    console.log(`point 2`);
     //make first graphql call
     let temp = getOldestVersions(input.owner, input.repo, input.packageName, 100, input.ignoreVersions, input.token);
-    if (temp.pipe(operators_1.map(value => value.length)) === rxjs_1.of(0)) {
+    if (temp.pipe(operators_1.map(value => value.length === 0))) {
         return rxjs_1.throwError(`package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`);
     }
+    const a = temp.pipe(operators_1.map(value => value.length));
+    const b = temp.pipe(operators_1.map(value => value.length < input.numOldVersionsToDelete));
+    console.log(`a: ${a}, b: ${b}, `);
     if (input.minVersionsToKeep < 0) {
-        while (temp.pipe(operators_1.map(value => value.length)) <
-            rxjs_1.of(input.numOldVersionsToDelete) &&
+        console.log('in if condition');
+        while (resultIds.pipe(operators_1.map(value => value.length < input.numOldVersionsToDelete)) &&
             paginate) {
             console.log('In loop for pagination');
             resultIds = rxjs_1.concat(resultIds, temp);

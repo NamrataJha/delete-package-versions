@@ -243,6 +243,7 @@ export function getOldestVersions(
     token
   ).pipe(
     map(result => {
+      console.log(`point 1`)
       if (result.repository.packages.edges.length < 1) {
         console.log(
           `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
@@ -275,7 +276,7 @@ export function getOldestVersions(
 
 export function getRequiredVersions(input: Input): Observable<string[]> {
   let resultIds = new Observable<string[]>()
-
+  console.log(`point 2`)
   //make first graphql call
 
   let temp = getOldestVersions(
@@ -292,10 +293,16 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
       `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
     )
   }
+  const a = temp.pipe(map(value => value.length))
+  const b = temp.pipe(map(value => value.length < input.numOldVersionsToDelete))
+  console.log(`a: ${a}, b: ${b}, `)
 
   if (input.minVersionsToKeep < 0) {
+    console.log('in if condition')
     while (
-      temp.pipe(map(value => value.length < input.numOldVersionsToDelete)) &&
+      resultIds.pipe(
+        map(value => value.length < input.numOldVersionsToDelete)
+      ) &&
       paginate
     ) {
       console.log('In loop for pagination')
