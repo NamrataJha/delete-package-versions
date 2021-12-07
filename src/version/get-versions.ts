@@ -1,5 +1,5 @@
 import {GraphQlQueryResponse} from '@octokit/graphql/dist-types/types'
-import {Observable, from, throwError, concat, of} from 'rxjs'
+import {Observable, from, throwError, concat} from 'rxjs'
 import {catchError, map} from 'rxjs/operators'
 import {graphql} from './graphql'
 import {Input} from '../input'
@@ -257,12 +257,13 @@ export function getOldestVersions(
 
       paginationCursor = paginationInfo.startCursor
       paginate = paginationInfo.hasPreviousPage
-      /*
+
+      console.log(`cursor: ${paginationCursor}, paginate: ${paginate}`)
       if (versions.length !== numVersions) {
         console.log(
           `number of versions requested was: ${numVersions}, but found: ${versions.length}`
         )
-      }*/
+      }
 
       return versions
         .filter(value => !ignoreVersions.test(value.version))
@@ -286,7 +287,7 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
     input.token
   )
 
-  if (temp.pipe(map(value => value.length)) === of(0)) {
+  if (temp.pipe(map(value => value.length === 0))) {
     return throwError(
       `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
     )
@@ -294,8 +295,7 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
 
   if (input.minVersionsToKeep < 0) {
     while (
-      temp.pipe(map(value => value.length)) <
-        of(input.numOldVersionsToDelete) &&
+      temp.pipe(map(value => value.length < input.numOldVersionsToDelete)) &&
       paginate
     ) {
       console.log('In loop for pagination')
