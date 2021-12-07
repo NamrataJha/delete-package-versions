@@ -32,7 +32,7 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        return version_1.getRequiredVersions(input);
+        return version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(versionInfo => versionInfo.map(info => info.id)));
     }
     return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
 }
@@ -164,12 +164,10 @@ exports.deletePackageVersions = deletePackageVersions;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getRequiredVersions = exports.getOldestVersions = exports.queryForOldestVersions = void 0;
+exports.getOldestVersions = exports.queryForOldestVersions = void 0;
 const rxjs_1 = __nccwpck_require__(5805);
 const operators_1 = __nccwpck_require__(7801);
 const graphql_1 = __nccwpck_require__(6320);
-let paginationCursor = '';
-let paginate = false;
 const query = `
   query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!) {
     repository(owner: $owner, name: $repo) {
@@ -218,15 +216,15 @@ const paginatequery = `
       }
     }
   }`;
-function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
-    if (!paginate) {
+function queryForOldestVersions(owner, repo, packageName, numVersions, cursor, token) {
+    if (cursor === '') {
         console.log('graphql call without pagination');
         return rxjs_1.from(graphql_1.graphql(token, query, {
             owner,
             repo,
             package: packageName,
             last: numVersions,
-            paginationCursor,
+            cursor,
             headers: {
                 Accept: 'application/vnd.github.packages-preview+json'
             }
@@ -244,7 +242,7 @@ function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
             repo,
             package: packageName,
             last: numVersions,
-            paginationCursor,
+            cursor,
             headers: {
                 Accept: 'application/vnd.github.packages-preview+json'
             }
@@ -257,83 +255,246 @@ function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
     }
 }
 exports.queryForOldestVersions = queryForOldestVersions;
-function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, token) {
-    return queryForOldestVersions(owner, repo, packageName, numVersions, token).pipe(operators_1.map(result => {
-        console.log(`point 1`);
+function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, cursor, token) {
+    return queryForOldestVersions(owner, repo, packageName, 2, cursor, token).pipe(operators_1.expand(({ repository }) => repository.packages.edges[0].node.versions.pageInfo.paginate
+        ? queryForOldestVersions(owner, repo, packageName, 2, repository.packages.edges[0].node.versions.pageInfo.cursor, token)
+        : rxjs_1.EMPTY), operators_1.map(result => {
         if (result.repository.packages.edges.length < 1) {
             console.log(`package: ${packageName} not found for owner: ${owner} in repo: ${repo}`);
             return [];
         }
-        const versions = result.repository.packages.edges[0].node.versions.edges.node;
-        const paginationInfo = result.repository.packages.edges[0].node.versions.pageInfo;
-        paginationCursor = paginationInfo.startCursor;
-        paginate = paginationInfo.hasPreviousPage;
-        console.log(`cursor: ${paginationCursor}, paginate: ${paginate}`);
-        if (versions.length !== numVersions) {
-            console.log(`number of versions requested was: ${numVersions}, but found: ${versions.length}`);
-        }
-        return versions
-            .filter(value => !ignoreVersions.test(value.version))
-            .map(value => ({
-            id: value.id,
-            cursor: paginationInfo.startCursor,
-            paginate: paginationInfo.hasPreviousPage,
-            length: versions.length
-        }))
+        const versionsInfo = result.repository.packages.edges[0].node.versions.edges;
+        return versionsInfo
+            .filter(value => !ignoreVersions.test(value.node.version))
+            .map(value => ({ id: value.node.id, version: value.node.version }))
             .reverse();
     }));
 }
 exports.getOldestVersions = getOldestVersions;
-function getRequiredVersions(input) {
-    let resultIds = new rxjs_1.Observable();
-    console.log(`point 2`);
-    //make first graphql call
-    let temp = getOldestVersions(input.owner, input.repo, input.packageName, 2, input.ignoreVersions, input.token);
-    temp.pipe(operators_1.map(value => {
-        console.log(`checking if package exists: ${value.length}, condition: ${value.length === 0}`);
-        if (value.length === 0) {
-            return rxjs_1.throwError(`package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`);
-        }
-    }));
-    if (input.minVersionsToKeep < 0) {
-        let resultLength = 0;
-        temp.pipe(operators_1.map(value => {
-            console.log(`inside observable`);
-            do {
-                console.log(`append observable`);
-                resultLength += value.length;
-                resultIds = rxjs_1.concat(resultIds, temp);
-                temp = getOldestVersions(input.owner, input.repo, input.packageName, 2, input.ignoreVersions, input.token);
-            } while (resultLength < input.numOldVersionsToDelete ||
-                value.map(info => info.paginate));
-        }));
-        return resultIds.pipe(operators_1.map(value => value.map(info => info.id)));
-    }
+/*
+export function getOldestVersions(
+  owner:string,
+  repo: string,
+  packageName: string,
+  numVersions: number,
+  ignoreVersions: RegExp,
+  cursor: string,
+  token: string
+): Observable<VersionInfo>{
+  return queryForOldestVersions(
+    owner,
+    repo,
+    packageName,
+    numVersions,
+    cursor,
+    token
+  ).pipe(
+    expand(({repository}) => repository.packages.edges[0].node.versions.pageInfo.paginate && repository.packages.edges[0].node.versions.edges.filter
+    (value => !ignoreVersions.test(value.node.version)).length < numVersions ? queryForOldestVersions(owner, repo, packageName, numVersions,token) : EMPTY),
+    
+    )
+    
     /*
-    let idsLength = 0
-    if (input.minVersionsToKeep < 0) {
-      console.log('in if condition')
-      do {
-        temp.pipe(map(value => (idsLength += value.length)))
-        console.log('In loop for pagination')
-        resultIds = concat(resultIds, temp)
-        temp = getOldestVersions(
-          input.owner,
-          input.repo,
-          input.packageName,
-          100,
-          input.ignoreVersions,
-          input.token
+    tap(result => {
+      if (result.repository.packages.edges.length < 1) {
+        console.log(
+          `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
         )
-        console.log(`after loop`)
-      } while (idsLength < input.minVersionsToKeep && paginate)
-  
-      return resultIds.pipe(map(value => value.map(info => info.id)))
-    }
-    */
-    return resultIds.pipe(operators_1.map(value => value.map(info => info.id)));
+        return []
+      }
+
+      let packageVersions = result.repository.packages.edges[0].node.versions.edges
+      const resultPackages = packageVersions.node.filter(value => !ignoreVersions.test(value.version))
+
+      let versionsPage = result.repository.packages.edges[0].node.versions.pageInfo
+
+      if (versionsPage.hasPreviousPage){
+        if(resultPackages.length < numVersions){
+          //get next page
+          concat(resultPackages.map(value => ({id: value.id, version: value.version})).reverse()
+            , getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, versionsPage.startCursor, token))
+        }
+      }
+      
+      return resultPackages
+      .map(value => ({id: value.id, version: value.version}))
+      .reverse()
+      
+    })
+
+/*
+export function getOldestVersions(
+  owner: string,
+  repo: string,
+  packageName: string,
+  numVersions: number,
+  ignoreVersions: RegExp,
+  cursor: string,
+  token: string
+):Observable<VersionInfo[]> {
+  return queryForOldestVersions(
+    owner,
+    repo,
+    packageName,
+    2,
+    token
+  ).pipe(
+    map(result => {
+      if (result.repository.packages.edges.length < 1) {
+        console.log(
+          `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
+        )
+        return []
+      }
+
+      let packageVersions = result.repository.packages.edges[0].node.versions.edges
+      const resultPackages = packageVersions.node.filter(value => !ignoreVersions.test(value.version))
+
+      let versionsPage = result.repository.packages.edges[0].node.versions.pageInfo
+
+      if (versionsPage.hasPreviousPage){
+        if(resultPackages.length < numVersions){
+          //get next page
+          concat(resultPackages.map(value => ({id: value.id, version: value.version})).reverse()
+            , getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, versionsPage.startCursor, token))
+        }
+      }
+      
+      return resultPackages
+      .map(value => ({id: value.id, version: value.version}))
+      .reverse()
+      
+    })
+    .
+  )
 }
-exports.getRequiredVersions = getRequiredVersions;
+
+*/
+/*
+export function getOldestVersions(
+  owner: string,
+  repo: string,
+  packageName: string,
+  numVersions: number,
+  ignoreVersions: RegExp,
+  token: string
+):Observable<PageInfo[]> {
+  return queryForOldestVersions(
+    owner,
+    repo,
+    packageName,
+    numVersions,
+    token
+  ).pipe(
+    map(result => {
+      console.log(` Return from graphql call point 1`)
+      if (result.repository.packages.edges.length < 1) {
+        console.log(
+          `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
+        )
+        return []
+      }
+
+      const versions =
+        result.repository.packages.edges[0].node.versions.edges
+      const paginationInfo =
+        result.repository.packages.edges[0].node.versions.pageInfo
+
+      paginationCursor = paginationInfo.startCursor
+      paginate = paginationInfo.hasPreviousPage
+
+      console.log(`cursor: ${paginationCursor}, paginate: ${paginate}`)
+      if (versions.length !== numVersions) {
+        console.log(
+          `number of versions requested was: ${numVersions}, but found: ${versions.length}`
+        )
+      }
+
+      return
+    })
+  )
+}
+*/
+/*
+export function getRequiredVersions(input: Input): Observable<string[]> {
+  let resultIds = new Observable<VersionInfo[]>()
+  console.log(`point 2`)
+  //make first graphql call
+
+  let temp = getOldestVersions(
+    input.owner,
+    input.repo,
+    input.packageName,
+    2,
+    input.ignoreVersions,
+    input.token
+  )
+
+  temp.pipe(
+    map(value => {
+      console.log(
+        `checking if package exists: ${
+          value.length
+        }, condition: ${value.length === 0}`
+      )
+      if (value.length === 0) {
+        return throwError(
+          `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
+        )
+      }
+    })
+  )
+
+  if (input.minVersionsToKeep < 0) {
+    let resultLength = 0
+    temp.pipe(
+      map(value => {
+        console.log(`inside observable`)
+        do {
+          console.log(`append observable`)
+          resultLength += value.length
+          resultIds = concat(resultIds, temp)
+          temp = getOldestVersions(
+            input.owner,
+            input.repo,
+            input.packageName,
+            2,
+            input.ignoreVersions,
+            input.token
+          )
+        } while (
+          resultLength < input.numOldVersionsToDelete ||
+          value.map(info => info.paginate)
+        )
+      })
+    )
+    return resultIds.pipe(map(value => value.map(info => info.id)))
+  }
+  
+  let idsLength = 0
+  if (input.minVersionsToKeep < 0) {
+    console.log('in if condition')
+    do {
+      temp.pipe(map(value => (idsLength += value.length)))
+      console.log('In loop for pagination')
+      resultIds = concat(resultIds, temp)
+      temp = getOldestVersions(
+        input.owner,
+        input.repo,
+        input.packageName,
+        100,
+        input.ignoreVersions,
+        input.token
+      )
+      console.log(`after loop`)
+    } while (idsLength < input.minVersionsToKeep && paginate)
+
+    return resultIds.pipe(map(value => value.map(info => info.id)))
+  }
+  
+  return resultIds.pipe(map(value => value.map(info => info.id)))
+}
+*/
 
 
 /***/ }),

@@ -1,11 +1,6 @@
 import {Input} from './input'
 import {asapScheduler, merge, Observable, of, scheduled, throwError} from 'rxjs'
-import {
-  deletePackageVersions,
-  getOldestVersions,
-  getRequiredVersions,
-  VersionInfo
-} from './version'
+import {deletePackageVersions, getOldestVersions, VersionInfo} from './version'
 import {concatMap, map, mergeAll} from 'rxjs/operators'
 
 export function getVersionIds(input: Input): Observable<string[]> {
@@ -14,7 +9,15 @@ export function getVersionIds(input: Input): Observable<string[]> {
   }
 
   if (input.hasOldestVersionQueryInfo()) {
-    return getRequiredVersions(input)
+    return getOldestVersions(
+      input.owner,
+      input.repo,
+      input.packageName,
+      input.numOldVersionsToDelete,
+      input.ignoreVersions,
+      '',
+      input.token
+    ).pipe(map(versionInfo => versionInfo.map(info => info.id)))
   }
 
   return throwError(
