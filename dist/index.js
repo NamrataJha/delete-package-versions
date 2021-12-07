@@ -367,7 +367,7 @@ function getRequiredVersions(input) {
     console.log(`point 2`);
     //make first graphql call
     let temp = getOldestVersions(input.owner, input.repo, input.packageName, 100, input.ignoreVersions, input.token);
-    const a = temp.pipe(operators_1.map(value => value.length));
+    const a = temp.pipe.length;
     const b = temp.pipe(operators_1.map(value => value.length < input.numOldVersionsToDelete));
     console.log(`a: ${a}, b: ${b}, `);
     if (temp.pipe(operators_1.map(value => value.length === 0))) {

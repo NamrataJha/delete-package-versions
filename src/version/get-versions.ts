@@ -288,8 +288,9 @@ export function getRequiredVersions(input: Input): Observable<string[]> {
     input.token
   )
 
-  const a = temp.pipe(map(value => value.length))
+  const a = temp.pipe.length
   const b = temp.pipe(map(value => value.length < input.numOldVersionsToDelete))
+
   console.log(`a: ${a}, b: ${b}, `)
 
   if (temp.pipe(map(value => value.length === 0))) {
