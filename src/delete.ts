@@ -1,6 +1,11 @@
 import {Input} from './input'
 import {asapScheduler, merge, Observable, of, scheduled, throwError} from 'rxjs'
-import {deletePackageVersions, getOldestVersions, VersionInfo} from './version'
+import {
+  deletePackageVersions,
+  getOldestVersions,
+  getRequiredVersions,
+  VersionInfo
+} from './version'
 import {concatMap, map, mergeAll} from 'rxjs/operators'
 
 export function getVersionIds(input: Input): Observable<string[]> {
@@ -9,51 +14,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
   }
 
   if (input.hasOldestVersionQueryInfo()) {
-    console.log('check point 4')
-    var deletable = new Observable<string[]>()
-    if (input.minVersionsToKeep < 0) {
-      console.log('check point 3')
-      while (
-        deletable.pipe(map(versionInfo => versionInfo.length)) !==
-        of(input.numOldVersionsToDelete)
-      ) {
-        console.log('check point 2')
-        var deleteVersionIds = getOldestVersions(
-          input.owner,
-          input.repo,
-          input.packageName,
-          2,
-          input.token
-        )
-
-        scheduled(
-          [
-            deletable,
-            deleteVersionIds.pipe(
-              map(versionInfo =>
-                versionInfo
-                  .filter(info => !input.ignoreVersions.test(info.version))
-                  .map(info => info.id)
-                  .slice(0, input.numOldVersionsToDelete)
-              )
-            )
-          ],
-          asapScheduler
-        ).pipe(mergeAll())
-      }
-    }
-    console.log('check point 1')
-    return deletable
-
-    /*
-      return getOldestVersions(
-        input.owner,
-        input.repo,
-        input.packageName,
-        input.numOldVersionsToDelete,
-        input.token
-      ).pipe(map(versionInfo => versionInfo.map(info => info.id)))
-      */
+    return getRequiredVersions(input)
   }
 
   return throwError(

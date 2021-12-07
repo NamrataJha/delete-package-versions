@@ -32,34 +32,7 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        console.log('check point 4');
-        var deletable = new rxjs_1.Observable();
-        if (input.minVersionsToKeep < 0) {
-            console.log('check point 3');
-            while (deletable.pipe(operators_1.map(versionInfo => versionInfo.length)) !==
-                rxjs_1.of(input.numOldVersionsToDelete)) {
-                console.log('check point 2');
-                var deleteVersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, 2, input.token);
-                rxjs_1.scheduled([
-                    deletable,
-                    deleteVersionIds.pipe(operators_1.map(versionInfo => versionInfo
-                        .filter(info => !input.ignoreVersions.test(info.version))
-                        .map(info => info.id)
-                        .slice(0, input.numOldVersionsToDelete)))
-                ], rxjs_1.asapScheduler).pipe(operators_1.mergeAll());
-            }
-        }
-        console.log('check point 1');
-        return deletable;
-        /*
-          return getOldestVersions(
-            input.owner,
-            input.repo,
-            input.packageName,
-            input.numOldVersionsToDelete,
-            input.token
-          ).pipe(map(versionInfo => versionInfo.map(info => info.id)))
-          */
+        return version_1.getRequiredVersions(input);
     }
     return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
 }
@@ -191,10 +164,12 @@ exports.deletePackageVersions = deletePackageVersions;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getOldestVersions = exports.queryForOldestVersions = void 0;
+exports.getRequiredVersions = exports.getOldestVersions = exports.queryForOldestVersions = void 0;
 const rxjs_1 = __nccwpck_require__(5805);
 const operators_1 = __nccwpck_require__(7801);
 const graphql_1 = __nccwpck_require__(6320);
+let paginationCursor = '';
+let paginate = false;
 const query = `
   query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!) {
     repository(owner: $owner, name: $repo) {
@@ -219,38 +194,109 @@ const query = `
       }
     }
   }`;
-function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
-    return rxjs_1.from(graphql_1.graphql(token, query, {
-        owner,
-        repo,
-        package: packageName,
-        last: numVersions,
-        headers: {
-            Accept: 'application/vnd.github.packages-preview+json'
+const paginatequery = `
+  query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!, $after: String!) {
+    repository(owner: $owner, name: $repo) {
+      packages(first: 1, names: [$package]) {
+        edges {
+          node {
+            name
+            versions(last: $last, after: $after) {
+              edges {
+                node {
+                  id
+                  version
+                }
+              }
+              pageInfo{
+                startCursor
+                hasPreviousPage
+              }
+            }
+          }
         }
-    })).pipe(operators_1.catchError((err) => {
-        const msg = 'query for oldest version failed.';
-        return rxjs_1.throwError(err.errors && err.errors.length > 0
-            ? `${msg} ${err.errors[0].message}`
-            : `${msg} verify input parameters are correct`);
-    }));
+      }
+    }
+  }`;
+function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
+    if (!paginate) {
+        console.log('graphql call without pagination');
+        return rxjs_1.from(graphql_1.graphql(token, query, {
+            owner,
+            repo,
+            package: packageName,
+            last: numVersions,
+            headers: {
+                Accept: 'application/vnd.github.packages-preview+json'
+            }
+        })).pipe(operators_1.catchError((err) => {
+            const msg = 'query for oldest version failed.';
+            return rxjs_1.throwError(err.errors && err.errors.length > 0
+                ? `${msg} ${err.errors[0].message}`
+                : `${msg} verify input parameters are correct`);
+        }));
+    }
+    else {
+        console.log('graphql call with pagination');
+        return rxjs_1.from(graphql_1.graphql(token, paginatequery, {
+            owner,
+            repo,
+            package: packageName,
+            last: numVersions,
+            paginationCursor,
+            headers: {
+                Accept: 'application/vnd.github.packages-preview+json'
+            }
+        })).pipe(operators_1.catchError((err) => {
+            const msg = 'query for oldest version failed.';
+            return rxjs_1.throwError(err.errors && err.errors.length > 0
+                ? `${msg} ${err.errors[0].message}`
+                : `${msg} verify input parameters are correct`);
+        }));
+    }
 }
 exports.queryForOldestVersions = queryForOldestVersions;
-//Check in delete.ts
-function getOldestVersions(owner, repo, packageName, numVersions, token) {
-    return queryForOldestVersions(owner, repo, packageName, numVersions, token).pipe(operators_1.map(result => {
-        if (result.repository.packages.edges.length < 1) {
-            rxjs_1.throwError(`package: ${packageName} not found for owner: ${owner} in repo: ${repo}`);
-            return [];
-        }
-        const versions = result.repository.packages.edges[0].node.versions.edges;
-        console.log(`graphql call`);
-        return versions
-            .map(value => ({ id: value.node.id, version: value.node.version }))
-            .reverse();
-    }));
-}
-exports.getOldestVersions = getOldestVersions;
+/*Check in delete.ts
+
+export function getOldestVersions(
+  owner: string,
+  repo: string,
+  packageName: string,
+  numVersions: number,
+  minVersions: number,
+  ignoreVersions: RegExp,
+  token: string
+): Observable<VersionInfo[]> {
+  var deletable = new Observable<string[]>()
+  var deleteVersionIds = queryForOldestVersions(
+    owner,
+    repo,
+    packageName,
+    100,
+    token
+  ).pipe(
+    map(result => {
+      // revisit this
+      if (result.repository.packages.edges.length < 1) {
+        throwError(
+          `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
+        )
+        return []
+      }
+
+      const versions = result.repository.packages.edges[0].node.versions.edges
+      const pageInfo = result.repository.packages.pageInfo
+
+      console.log(`graphql call`)
+
+      var tempVersions = versions
+      .map(value => ({id: value.node.id, version: value.node.version}))
+      .reverse()
+
+      
+    })
+  )
+}*/
 /*
 check here
 export function getOldestVersions(
@@ -293,46 +339,49 @@ export function getOldestVersions(
 }
 */
 /*
-Original
-export function getOldestVersions(
-  owner: string,
-  repo: string,
-  packageName: string,
-  numVersions: number,
-  token: string
-): Observable<VersionInfo[]> {
-  return queryForOldestVersions(
-    owner,
-    repo,
-    packageName,
-    numVersions,
-    token
-  ).pipe(
-    map(result => {
-      if (result.repository.packages.edges.length < 1) {
-        console.log(
-          `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
-        )
-        return []
-      }
-
-      const versions = result.repository.packages.edges[0].node.versions.edges
-      
-      
-      if (versions.length !== numVersions) {
-        console.log(
-          `number of versions requested was: ${numVersions}, but found: ${versions.length}`
-        )
-      }
-      
-
-      return versions
-        .map(value => ({id: value.node.id, version: value.node.version}))
-        .reverse()
-    })
-  )
+Original*/
+function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, token) {
+    return queryForOldestVersions(owner, repo, packageName, numVersions, token).pipe(operators_1.map(result => {
+        if (result.repository.packages.edges.length < 1) {
+            console.log(`package: ${packageName} not found for owner: ${owner} in repo: ${repo}`);
+            return [];
+        }
+        const versions = result.repository.packages.edges[0].node.versions.edges.node;
+        const paginationInfo = result.repository.packages.edges[0].node.versions.pageInfo;
+        paginationCursor = paginationInfo.startCursor;
+        paginate = paginationInfo.hasPreviousPage;
+        /*
+        if (versions.length !== numVersions) {
+          console.log(
+            `number of versions requested was: ${numVersions}, but found: ${versions.length}`
+          )
+        }*/
+        return versions
+            .filter(value => !ignoreVersions.test(value.version))
+            .map(value => value.id)
+            .reverse();
+    }));
 }
-*/
+exports.getOldestVersions = getOldestVersions;
+function getRequiredVersions(input) {
+    let resultIds = new rxjs_1.Observable();
+    //make first graphql call
+    let temp = getOldestVersions(input.owner, input.repo, input.packageName, 100, input.ignoreVersions, input.token);
+    if (temp.pipe(operators_1.map(value => value.length)) === rxjs_1.of(0)) {
+        return rxjs_1.throwError(`package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`);
+    }
+    if (input.minVersionsToKeep < 0) {
+        while (temp.pipe(operators_1.map(value => value.length)) <
+            rxjs_1.of(input.numOldVersionsToDelete) &&
+            paginate) {
+            console.log('In loop for pagination');
+            resultIds = rxjs_1.concat(resultIds, temp);
+            temp = getOldestVersions(input.owner, input.repo, input.packageName, 100, input.ignoreVersions, input.token);
+        }
+    }
+    return resultIds;
+}
+exports.getRequiredVersions = getRequiredVersions;
 
 
 /***/ }),

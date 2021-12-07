@@ -1,12 +1,15 @@
 import {GraphQlQueryResponse} from '@octokit/graphql/dist-types/types'
-import {Observable, from, throwError} from 'rxjs'
+import {Observable, from, throwError, concat, of} from 'rxjs'
 import {catchError, map} from 'rxjs/operators'
 import {graphql} from './graphql'
+import {Input} from '../input'
 
 export interface VersionInfo {
   id: string
-  version: string
 }
+
+let paginationCursor = ''
+let paginate = false
 
 export interface GetVersionsQueryResponse {
   repository: {
@@ -15,14 +18,19 @@ export interface GetVersionsQueryResponse {
         node: {
           name: string
           versions: {
-            edges: {node: VersionInfo}[]
+            edges: {
+              node: {
+                id: string
+                version: string
+              }[]
+            }
+            pageInfo: {
+              startCursor: string
+              hasPreviousPage: boolean
+            }
           }
         }
       }[]
-      pageInfo: {
-        startCursor: string
-        hasPreviousPage: boolean
-      }
     }
   }
 }
@@ -52,6 +60,31 @@ const query = `
     }
   }`
 
+const paginatequery = `
+  query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!, $after: String!) {
+    repository(owner: $owner, name: $repo) {
+      packages(first: 1, names: [$package]) {
+        edges {
+          node {
+            name
+            versions(last: $last, after: $after) {
+              edges {
+                node {
+                  id
+                  version
+                }
+              }
+              pageInfo{
+                startCursor
+                hasPreviousPage
+              }
+            }
+          }
+        }
+      }
+    }
+  }`
+
 export function queryForOldestVersions(
   owner: string,
   repo: string,
@@ -59,45 +92,75 @@ export function queryForOldestVersions(
   numVersions: number,
   token: string
 ): Observable<GetVersionsQueryResponse> {
-  return from(
-    graphql(token, query, {
-      owner,
-      repo,
-      package: packageName,
-      last: numVersions,
-      headers: {
-        Accept: 'application/vnd.github.packages-preview+json'
-      }
-    }) as Promise<GetVersionsQueryResponse>
-  ).pipe(
-    catchError((err: GraphQlQueryResponse) => {
-      const msg = 'query for oldest version failed.'
-      return throwError(
-        err.errors && err.errors.length > 0
-          ? `${msg} ${err.errors[0].message}`
-          : `${msg} verify input parameters are correct`
-      )
-    })
-  )
+  if (!paginate) {
+    console.log('graphql call without pagination')
+    return from(
+      graphql(token, query, {
+        owner,
+        repo,
+        package: packageName,
+        last: numVersions,
+        headers: {
+          Accept: 'application/vnd.github.packages-preview+json'
+        }
+      }) as Promise<GetVersionsQueryResponse>
+    ).pipe(
+      catchError((err: GraphQlQueryResponse) => {
+        const msg = 'query for oldest version failed.'
+        return throwError(
+          err.errors && err.errors.length > 0
+            ? `${msg} ${err.errors[0].message}`
+            : `${msg} verify input parameters are correct`
+        )
+      })
+    )
+  } else {
+    console.log('graphql call with pagination')
+    return from(
+      graphql(token, paginatequery, {
+        owner,
+        repo,
+        package: packageName,
+        last: numVersions,
+        paginationCursor,
+        headers: {
+          Accept: 'application/vnd.github.packages-preview+json'
+        }
+      }) as Promise<GetVersionsQueryResponse>
+    ).pipe(
+      catchError((err: GraphQlQueryResponse) => {
+        const msg = 'query for oldest version failed.'
+        return throwError(
+          err.errors && err.errors.length > 0
+            ? `${msg} ${err.errors[0].message}`
+            : `${msg} verify input parameters are correct`
+        )
+      })
+    )
+  }
 }
 
-//Check in delete.ts
+/*Check in delete.ts
 
 export function getOldestVersions(
   owner: string,
   repo: string,
   packageName: string,
   numVersions: number,
+  minVersions: number,
+  ignoreVersions: RegExp,
   token: string
 ): Observable<VersionInfo[]> {
-  return queryForOldestVersions(
+  var deletable = new Observable<string[]>()
+  var deleteVersionIds = queryForOldestVersions(
     owner,
     repo,
     packageName,
-    numVersions,
+    100,
     token
   ).pipe(
     map(result => {
+      // revisit this
       if (result.repository.packages.edges.length < 1) {
         throwError(
           `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
@@ -106,15 +169,18 @@ export function getOldestVersions(
       }
 
       const versions = result.repository.packages.edges[0].node.versions.edges
+      const pageInfo = result.repository.packages.pageInfo
 
       console.log(`graphql call`)
 
-      return versions
-        .map(value => ({id: value.node.id, version: value.node.version}))
-        .reverse()
+      var tempVersions = versions
+      .map(value => ({id: value.node.id, version: value.node.version}))
+      .reverse()
+
+      
     })
   )
-}
+}*/
 
 /*
 check here
@@ -159,14 +225,16 @@ export function getOldestVersions(
 */
 
 /*
-Original
+Original*/
+
 export function getOldestVersions(
   owner: string,
   repo: string,
   packageName: string,
   numVersions: number,
+  ignoreVersions: RegExp,
   token: string
-): Observable<VersionInfo[]> {
+): Observable<string[]> {
   return queryForOldestVersions(
     owner,
     repo,
@@ -174,7 +242,7 @@ export function getOldestVersions(
     numVersions,
     token
   ).pipe(
-    map(result => { 
+    map(result => {
       if (result.repository.packages.edges.length < 1) {
         console.log(
           `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
@@ -182,20 +250,66 @@ export function getOldestVersions(
         return []
       }
 
-      const versions = result.repository.packages.edges[0].node.versions.edges
-      
-      
+      const versions =
+        result.repository.packages.edges[0].node.versions.edges.node
+      const paginationInfo =
+        result.repository.packages.edges[0].node.versions.pageInfo
+
+      paginationCursor = paginationInfo.startCursor
+      paginate = paginationInfo.hasPreviousPage
+      /*
       if (versions.length !== numVersions) {
         console.log(
           `number of versions requested was: ${numVersions}, but found: ${versions.length}`
         )
-      }
-      
+      }*/
 
       return versions
-        .map(value => ({id: value.node.id, version: value.node.version}))
+        .filter(value => !ignoreVersions.test(value.version))
+        .map(value => value.id)
         .reverse()
     })
   )
 }
-*/
+
+export function getRequiredVersions(input: Input): Observable<string[]> {
+  let resultIds = new Observable<string[]>()
+
+  //make first graphql call
+
+  let temp = getOldestVersions(
+    input.owner,
+    input.repo,
+    input.packageName,
+    100,
+    input.ignoreVersions,
+    input.token
+  )
+
+  if (temp.pipe(map(value => value.length)) === of(0)) {
+    return throwError(
+      `package: ${input.packageName} not found for owner: ${input.owner} in repo: ${input.repo}`
+    )
+  }
+
+  if (input.minVersionsToKeep < 0) {
+    while (
+      temp.pipe(map(value => value.length)) <
+        of(input.numOldVersionsToDelete) &&
+      paginate
+    ) {
+      console.log('In loop for pagination')
+      resultIds = concat(resultIds, temp)
+      temp = getOldestVersions(
+        input.owner,
+        input.repo,
+        input.packageName,
+        100,
+        input.ignoreVersions,
+        input.token
+      )
+    }
+  }
+
+  return resultIds
+}
