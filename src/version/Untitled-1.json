@@ -1,0 +1,72 @@
+{
+  "data": {
+    "repository": {
+      "packages": {
+        "totalCount": 1,
+        "nodes": [
+          {
+            "name": "mavenpackage.demopack",
+            "id": "P_kwDOGJRY7M4AD-pc",
+            "versions": {
+              "totalCount": 12,
+              "nodes": [
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDUP-o",
+                  "version": "3.4-SNAPSHOT"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDUPQ0",
+                  "version": "3.3.0"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDUPOQ",
+                  "version": "3.2-SNAPSHOT"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDUPFY",
+                  "version": "3.1.0"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDUPDI",
+                  "version": "3.0.0"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDSBPU",
+                  "version": "1.6-SNAPSHOT"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDInw0",
+                  "version": "1.5-SNAPSHOT"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDInwU",
+                  "version": "1.4-SNAPSHOT"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDHsic",
+                  "version": "1.3-SNAPSHOT"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDHsbc",
+                  "version": "1.2-SNAPSHOT"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDHoaU",
+                  "version": "1.1-SNAPSHOT"
+                },
+                {
+                  "id": "PV_lADOGJRY7M4AD-pczgDHoZA",
+                  "version": "1.0-SNAPSHOT"
+                }
+              ]
+            }
+          }
+        ],
+        "pageInfo": {
+          "startCursor": "MQ",
+          "hasPreviousPage": false
+        }
+      }
+    }
+  }
+}

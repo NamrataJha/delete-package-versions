@@ -91,6 +91,10 @@ export function queryForOldestVersions(
   token: string
 ): Observable<GetVersionsQueryResponse> {
   console.log(`cursor: ${cursor}`)
+  const noVersions =
+    pendingVersions > numVersions
+      ? pendingVersions - numVersions
+      : pendingVersions
   if (cursor === '') {
     console.log('graphql call without pagination')
     return from(
@@ -98,7 +102,7 @@ export function queryForOldestVersions(
         owner,
         repo,
         package: packageName,
-        last: numVersions,
+        last: noVersions,
         before: cursor,
         headers: {
           Accept: 'application/vnd.github.packages-preview+json'
@@ -121,7 +125,7 @@ export function queryForOldestVersions(
         owner,
         repo,
         package: packageName,
-        last: numVersions,
+        last: pendingVersions,
         before: cursor,
         headers: {
           Accept: 'application/vnd.github.packages-preview+json'
@@ -155,7 +159,7 @@ export function getOldestVersions(
     repo,
     packageName,
     2,
-    numVersions,
+    pendingVersions,
     cursor,
     token
   ).pipe(
