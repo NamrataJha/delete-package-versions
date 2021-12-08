@@ -39,7 +39,7 @@ inputs:
       Number of versions to keep starting with the latest version
       Defaults to 0.
     required: false
-    default: "0"
+    default: "-1"
 
   ignore-versions:
     description: >

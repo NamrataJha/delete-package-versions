@@ -1,3 +1,6 @@
+import {error} from '@actions/core'
+import {throwError} from 'rxjs'
+
 export interface InputParams {
   packageVersionIds?: string[]
   owner?: string
@@ -45,15 +48,6 @@ export class Input {
     this.ignoreVersions = validatedParams.ignoreVersions
     this.deletePreReleaseVersions = validatedParams.deletePreReleaseVersions
     this.token = validatedParams.token
-
-    if (this.minVersionsToKeep > 0) {
-      this.numOldVersionsToDelete = 100 - this.minVersionsToKeep
-    }
-
-    if (this.deletePreReleaseVersions == 'true') {
-      this.numOldVersionsToDelete = 100 - this.minVersionsToKeep
-      this.ignoreVersions = new RegExp('^(0|[1-9]\\d*)((\\.(0|[1-9]\\d*))*)$')
-    }
   }
 
   hasOldestVersionQueryInfo(): boolean {
@@ -62,7 +56,6 @@ export class Input {
       this.repo &&
       this.packageName &&
       this.numOldVersionsToDelete > 0 &&
-      this.minVersionsToKeep >= 0 &&
       this.token
     )
   }

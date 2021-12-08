@@ -32,7 +32,12 @@ export function getMockedOldestQueryResponse(
               }
             }
           }
-        ]
+        ],
+        pageInfo:{
+          startCursor: '0',
+          hasPreviousPage: false
+
+        }
       }
     }
   }
