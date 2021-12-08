@@ -86,6 +86,7 @@ export function queryForOldestVersions(
   repo: string,
   packageName: string,
   numVersions: number,
+  pendingVersions: number,
   cursor: string,
   token: string
 ): Observable<GetVersionsQueryResponse> {
@@ -144,6 +145,7 @@ export function getOldestVersions(
   repo: string,
   packageName: string,
   numVersions: number,
+  pendingVersions: number,
   ignoreVersions: RegExp,
   cursor: string,
   token: string
@@ -153,24 +155,27 @@ export function getOldestVersions(
     repo,
     packageName,
     2,
+    numVersions,
     cursor,
     token
   ).pipe(
     expand(({repository}) =>
       repository.packages.edges[0].node.versions.pageInfo.hasPreviousPage &&
-      repository.packages.edges[0].node.versions.edges.length < numVersions
+      repository.packages.edges[0].node.versions.edges.length < pendingVersions
         ? queryForOldestVersions(
             owner,
             repo,
             packageName,
             2,
+            pendingVersions -
+              repository.packages.edges[0].node.versions.edges.length,
             repository.packages.edges[0].node.versions.pageInfo.startCursor,
             token
           )
         : EMPTY
     ),
     map(result => {
-      console.log(`in map`)
+      console.log(`in map pending versions: ${pendingVersions}`)
       if (result.repository.packages.edges.length < 1) {
         console.log(
           `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
