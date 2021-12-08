@@ -222,6 +222,7 @@ const paginatequery = `
 function queryForOldestVersions(owner, repo, packageName, numVersions, pendingVersions, cursor, token) {
     console.log(`cursor: ${cursor}`);
     const noVersions = pendingVersions > numVersions ? numVersions : pendingVersions;
+    console.log(`noVersion: ${noVersions}`);
     if (cursor === '') {
         console.log('graphql call without pagination');
         return rxjs_1.from(graphql_1.graphql(token, query, {
@@ -262,7 +263,7 @@ function queryForOldestVersions(owner, repo, packageName, numVersions, pendingVe
 exports.queryForOldestVersions = queryForOldestVersions;
 function getOldestVersions(owner, repo, packageName, numVersions, pendingVersions, ignoreVersions, cursor, token) {
     return queryForOldestVersions(owner, repo, packageName, 2, pendingVersions, cursor, token).pipe(operators_1.expand(({ repository }) => repository.packages.edges[0].node.versions.pageInfo.hasPreviousPage &&
-        repository.packages.edges[0].node.versions.edges.length < pendingVersions
+        repository.packages.edges[0].node.versions.edges.length <= pendingVersions
         ? queryForOldestVersions(owner, repo, packageName, 2, pendingVersions -
             repository.packages.edges[0].node.versions.edges.length, repository.packages.edges[0].node.versions.pageInfo.startCursor, token)
         : rxjs_1.EMPTY), operators_1.map(result => {

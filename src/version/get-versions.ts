@@ -93,6 +93,7 @@ export function queryForOldestVersions(
   console.log(`cursor: ${cursor}`)
   const noVersions =
     pendingVersions > numVersions ? numVersions : pendingVersions
+  console.log(`noVersion: ${noVersions}`)
   if (cursor === '') {
     console.log('graphql call without pagination')
     return from(
@@ -163,7 +164,7 @@ export function getOldestVersions(
   ).pipe(
     expand(({repository}) =>
       repository.packages.edges[0].node.versions.pageInfo.hasPreviousPage &&
-      repository.packages.edges[0].node.versions.edges.length < pendingVersions
+      repository.packages.edges[0].node.versions.edges.length <= pendingVersions
         ? queryForOldestVersions(
             owner,
             repo,
