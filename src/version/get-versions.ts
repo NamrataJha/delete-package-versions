@@ -157,7 +157,8 @@ export function getOldestVersions(
     token
   ).pipe(
     expand(({repository}) =>
-      repository.packages.edges[0].node.versions.pageInfo.hasPreviousPage
+      repository.packages.edges[0].node.versions.pageInfo.hasPreviousPage &&
+      repository.packages.edges[0].node.versions.edges.length < numVersions
         ? queryForOldestVersions(
             owner,
             repo,

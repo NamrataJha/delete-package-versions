@@ -260,7 +260,8 @@ function queryForOldestVersions(owner, repo, packageName, numVersions, cursor, t
 }
 exports.queryForOldestVersions = queryForOldestVersions;
 function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, cursor, token) {
-    return queryForOldestVersions(owner, repo, packageName, 2, cursor, token).pipe(operators_1.expand(({ repository }) => repository.packages.edges[0].node.versions.pageInfo.hasPreviousPage
+    return queryForOldestVersions(owner, repo, packageName, 2, cursor, token).pipe(operators_1.expand(({ repository }) => repository.packages.edges[0].node.versions.pageInfo.hasPreviousPage &&
+        repository.packages.edges[0].node.versions.edges.length < numVersions
         ? queryForOldestVersions(owner, repo, packageName, 2, repository.packages.edges[0].node.versions.pageInfo.startCursor, token)
         : rxjs_1.EMPTY), operators_1.map(result => {
         console.log(`in map`);
