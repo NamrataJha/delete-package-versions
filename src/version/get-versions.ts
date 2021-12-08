@@ -92,9 +92,7 @@ export function queryForOldestVersions(
 ): Observable<GetVersionsQueryResponse> {
   console.log(`cursor: ${cursor}`)
   const noVersions =
-    pendingVersions > numVersions
-      ? pendingVersions - numVersions
-      : pendingVersions
+    pendingVersions > numVersions ? numVersions : pendingVersions
   if (cursor === '') {
     console.log('graphql call without pagination')
     return from(
@@ -189,6 +187,8 @@ export function getOldestVersions(
 
       const versionsInfo =
         result.repository.packages.edges[0].node.versions.edges
+
+      pendingVersions = pendingVersions - versionsInfo.length
 
       return versionsInfo
         .filter(value => !ignoreVersions.test(value.node.version))
