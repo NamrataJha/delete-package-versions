@@ -27,9 +27,9 @@ exports.deleteVersions = exports.finalIds = exports.getVersionIds = void 0;
 const rxjs_1 = __nccwpck_require__(5805);
 const version_1 = __nccwpck_require__(4428);
 const operators_1 = __nccwpck_require__(7801);
-function getVersionIds(owner, repo, packageName, cursor, token) {
-    return version_1.getOldestVersions(owner, repo, packageName, 2, cursor, token).pipe(operators_1.expand(value => value.paginate
-        ? version_1.getOldestVersions(owner, repo, packageName, 2, value.cursor, token)
+function getVersionIds(owner, repo, packageName, ignoreVersions, cursor, token) {
+    return version_1.getOldestVersions(owner, repo, packageName, 2, ignoreVersions, cursor, token).pipe(operators_1.expand(value => value.paginate
+        ? version_1.getOldestVersions(owner, repo, packageName, 2, ignoreVersions, value.cursor, token)
         : rxjs_1.EMPTY), operators_1.map(value => value.versions), operators_1.tap(value => value.map(info => console.log(`id0: ${info.id}, version: ${info.version}`))));
 }
 exports.getVersionIds = getVersionIds;
@@ -39,8 +39,8 @@ function finalIds(input) {
     }
     if (input.hasOldestVersionQueryInfo()) {
         console.log(`in if`);
-        return getVersionIds(input.owner, input.repo, input.packageName, '', input.token).pipe(operators_1.map(value => {
-            return value.map(info => info.id);
+        return getVersionIds(input.owner, input.repo, input.packageName, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
+            return value.map(info => info.id).slice(0, input.numOldVersionsToDelete);
         }));
     }
     return rxjs_1.throwError(`no package id found`);
@@ -279,7 +279,7 @@ export function getOldestVersions(
   )
 }
 */
-function getOldestVersions(owner, repo, packageName, numVersions, startCursor, token) {
+function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, startCursor, token) {
     return queryForOldestVersions(owner, repo, packageName, numVersions, startCursor, token).pipe(operators_1.map(result => {
         let r;
         if (result.repository.packages.edges.length < 1) {
@@ -298,6 +298,7 @@ function getOldestVersions(owner, repo, packageName, numVersions, startCursor, t
         }
         r = {
             versions: versions
+                .filter(value => !ignoreVersions.test(value.node.version))
                 .map(value => ({ id: value.node.id, version: value.node.version }))
                 .reverse(),
             cursor: pages.startCursor,

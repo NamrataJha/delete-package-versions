@@ -19,13 +19,30 @@ export function getVersionIds(
   owner: string,
   repo: string,
   packageName: string,
+  ignoreVersions: RegExp,
   cursor: string,
   token: string
 ): Observable<VersionInfo[]> {
-  return getOldestVersions(owner, repo, packageName, 2, cursor, token).pipe(
+  return getOldestVersions(
+    owner,
+    repo,
+    packageName,
+    2,
+    ignoreVersions,
+    cursor,
+    token
+  ).pipe(
     expand(value =>
       value.paginate
-        ? getOldestVersions(owner, repo, packageName, 2, value.cursor, token)
+        ? getOldestVersions(
+            owner,
+            repo,
+            packageName,
+            2,
+            ignoreVersions,
+            value.cursor,
+            token
+          )
         : EMPTY
     ),
     map(value => value.versions),
@@ -47,11 +64,12 @@ export function finalIds(input: Input): Observable<string[]> {
       input.owner,
       input.repo,
       input.packageName,
+      input.ignoreVersions,
       '',
       input.token
     ).pipe(
       map(value => {
-        return value.map(info => info.id)
+        return value.map(info => info.id).slice(0, input.numOldVersionsToDelete)
       })
     )
   }
