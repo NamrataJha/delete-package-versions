@@ -23,49 +23,26 @@ module.exports = JSON.parse('{"_args":[["@octokit/rest@16.43.1","/workspaces/del
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.deleteVersions = exports.getVersionIds = void 0;
+exports.deleteVersions = exports.finalIds = exports.getVersionIds = void 0;
 const rxjs_1 = __nccwpck_require__(5805);
 const version_1 = __nccwpck_require__(4428);
 const operators_1 = __nccwpck_require__(7801);
-function getVersionIds(input) {
+function getVersionIds(owner, repo, packageName, cursor, token) {
+    return version_1.getOldestVersions(owner, repo, packageName, 2, cursor, token).pipe(operators_1.expand(value => value.paginate
+        ? version_1.getOldestVersions(owner, repo, packageName, 2, value.cursor, token)
+        : rxjs_1.EMPTY), operators_1.map(value => value.versions));
+}
+exports.getVersionIds = getVersionIds;
+function finalIds(input) {
     if (input.packageVersionIds.length > 0) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        let DeleteIds = { versions: [], cursor: '', paginate: false };
-        let ResultIds = [];
-        let VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).subscribe(result => {
-            DeleteIds = result;
-            console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
-            DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
-            //method call to check conditions
-            ResultIds = ResultIds.concat(DeleteIds.versions
-                .filter(value => !input.ignoreVersions.test(value.version))
-                .map(value => value.id));
-            ResultIds.map(value => console.log(` inside subscribe id1: ${value}`));
-            console.log(`ResultIds length0: ${ResultIds.length}`);
-            while (ResultIds.length < input.numOldVersionsToDelete &&
-                DeleteIds.paginate) {
-                console.log(`Call graphQL again`);
-                version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, DeleteIds.cursor, input.token).pipe(operators_1.map(resultnew => {
-                    //DeleteIds = result as ArrayCast[]
-                    DeleteIds = resultnew;
-                    console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
-                    DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
-                    //method call to check conditions
-                    ResultIds = ResultIds.concat(DeleteIds.versions
-                        .filter(value => !input.ignoreVersions.test(value.version))
-                        .map(value => value.id));
-                    ResultIds.map(value => console.log(` inside subscribe id1: ${value}`));
-                }));
-                console.log(`end while`);
-            }
-            return ResultIds;
-        });
+        getVersionIds(input.owner, input.repo, input.packageName, '', input.token).pipe(operators_1.map(value => value.map(info => console.log(`id0: ${info.id}, version0: ${info.version}`))));
     }
-    return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
+    return rxjs_1.of([]);
 }
-exports.getVersionIds = getVersionIds;
+exports.finalIds = finalIds;
 function deleteVersions(input) {
     if (!input.token) {
         return rxjs_1.throwError('No token found');
@@ -74,7 +51,7 @@ function deleteVersions(input) {
         console.log('Number of old versions to delete input is 0 or less, no versions will be deleted');
         return rxjs_1.of(true);
     }
-    return getVersionIds(input).pipe(operators_1.concatMap(ids => version_1.deletePackageVersions(ids, input.token)));
+    return finalIds(input).pipe(operators_1.concatMap(ids => version_1.deletePackageVersions(ids, input.token)));
 }
 exports.deleteVersions = deleteVersions;
 
@@ -301,16 +278,22 @@ export function getOldestVersions(
 */
 function getOldestVersions(owner, repo, packageName, numVersions, startCursor, token) {
     return queryForOldestVersions(owner, repo, packageName, numVersions, startCursor, token).pipe(operators_1.map(result => {
+        let r;
         if (result.repository.packages.edges.length < 1) {
             console.log(`package: ${packageName} not found for owner: ${owner} in repo: ${repo}`);
-            return [];
+            r = {
+                versions: [],
+                cursor: '',
+                paginate: false
+            };
+            return r;
         }
         const versions = result.repository.packages.edges[0].node.versions.edges;
         const pages = result.repository.packages.edges[0].node.versions.pageInfo;
         if (versions.length !== numVersions) {
             console.log(`number of versions requested was: ${numVersions}, but found: ${versions.length}`);
         }
-        const r = {
+        r = {
             versions: versions
                 .map(value => ({ id: value.node.id, version: value.node.version }))
                 .reverse(),

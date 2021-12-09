@@ -1,7 +1,7 @@
 import {Input} from './input'
-import {Observable, of, SubscribableOrPromise, throwError} from 'rxjs'
+import {EMPTY, Observable, of, SubscribableOrPromise, throwError} from 'rxjs'
 import {deletePackageVersions, getOldestVersions} from './version'
-import {concatMap, ignoreElements, map} from 'rxjs/operators'
+import {concatMap, expand, ignoreElements, map} from 'rxjs/operators'
 
 export interface VersionInfo {
   id: string
@@ -14,88 +14,43 @@ export interface QueryInfo {
   paginate: boolean
 }
 
-export function getVersionIds(input: Input): Observable<string[]> {
+export function getVersionIds(
+  owner: string,
+  repo: string,
+  packageName: string,
+  cursor: string,
+  token: string
+): Observable<VersionInfo[]> {
+  return getOldestVersions(owner, repo, packageName, 2, cursor, token).pipe(
+    expand(value =>
+      value.paginate
+        ? getOldestVersions(owner, repo, packageName, 2, value.cursor, token)
+        : EMPTY
+    ),
+    map(value => value.versions)
+  )
+}
+
+export function finalIds(input: Input): Observable<string[]> {
   if (input.packageVersionIds.length > 0) {
     return of(input.packageVersionIds)
   }
-
   if (input.hasOldestVersionQueryInfo()) {
-    let DeleteIds: QueryInfo = {versions: [], cursor: '', paginate: false}
-    let ResultIds: string[] = []
-    let VersionIds = getOldestVersions(
+    getVersionIds(
       input.owner,
       input.repo,
       input.packageName,
-      input.numOldVersionsToDelete + input.minVersionsToKeep,
       '',
       input.token
-    ).subscribe(result => {
-      DeleteIds = result as QueryInfo
-
-      console.log(
-        `cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`
-      )
-      DeleteIds.versions.map(value =>
-        console.log(`id0: ${value.id}, version0: ${value.version}`)
-      )
-
-      //method call to check conditions
-      ResultIds = ResultIds.concat(
-        DeleteIds.versions
-          .filter(value => !input.ignoreVersions.test(value.version))
-          .map(value => value.id)
-      )
-
-      ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
-
-      console.log(`ResultIds length0: ${ResultIds.length}`)
-
-      while (
-        ResultIds.length < input.numOldVersionsToDelete &&
-        DeleteIds.paginate
-      ) {
-        console.log(`Call graphQL again`)
-
-        getOldestVersions(
-          input.owner,
-          input.repo,
-          input.packageName,
-          input.numOldVersionsToDelete + input.minVersionsToKeep,
-          DeleteIds.cursor,
-          input.token
-        ).pipe(
-          map(resultnew => {
-            //DeleteIds = result as ArrayCast[]
-            DeleteIds = resultnew as QueryInfo
-
-            console.log(
-              `cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`
-            )
-            DeleteIds.versions.map(value =>
-              console.log(`id0: ${value.id}, version0: ${value.version}`)
-            )
-
-            //method call to check conditions
-            ResultIds = ResultIds.concat(
-              DeleteIds.versions
-                .filter(value => !input.ignoreVersions.test(value.version))
-                .map(value => value.id)
-            )
-
-            ResultIds.map(value =>
-              console.log(` inside subscribe id1: ${value}`)
-            )
-          })
+    ).pipe(
+      map(value =>
+        value.map(info =>
+          console.log(`id0: ${info.id}, version0: ${info.version}`)
         )
-        console.log(`end while`)
-      }
-      return ResultIds
-    })
+      )
+    )
   }
-
-  return throwError(
-    "Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions"
-  )
+  return of(<string[]>[])
 }
 
 export function deleteVersions(input: Input): Observable<boolean> {
@@ -110,7 +65,7 @@ export function deleteVersions(input: Input): Observable<boolean> {
     return of(true)
   }
 
-  return getVersionIds(input).pipe(
+  return finalIds(input).pipe(
     concatMap(ids => deletePackageVersions(ids, input.token))
   )
 }

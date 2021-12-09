@@ -174,7 +174,7 @@ export function getOldestVersions(
   numVersions: number,
   startCursor: string,
   token: string
-): Observable<QueryInfo | never[]> {
+): Observable<QueryInfo> {
   return queryForOldestVersions(
     owner,
     repo,
@@ -184,11 +184,17 @@ export function getOldestVersions(
     token
   ).pipe(
     map(result => {
+      let r: QueryInfo
       if (result.repository.packages.edges.length < 1) {
         console.log(
           `package: ${packageName} not found for owner: ${owner} in repo: ${repo}`
         )
-        return []
+        r = {
+          versions: <VersionInfo[]>[],
+          cursor: '',
+          paginate: false
+        }
+        return r
       }
 
       const versions = result.repository.packages.edges[0].node.versions.edges
@@ -200,7 +206,7 @@ export function getOldestVersions(
         )
       }
 
-      const r: QueryInfo = {
+      r = {
         versions: versions
           .map(value => ({id: value.node.id, version: value.node.version}))
           .reverse(),
