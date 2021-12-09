@@ -32,10 +32,13 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
+        let DeleteIds = [{ id: '', version: '' }];
         const VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).subscribe(result => {
-            const DeleteIds = result;
-            console.log(`DeleteIds: ${DeleteIds}`);
+            DeleteIds = result;
+            console.log(`DeleteIds: ${DeleteIds.map(value => console.log(` inseide subscribe id: ${value.id} and version: ${value.version}`))}`);
         });
+        console.log(`DeleteIds: ${DeleteIds.map(value => console.log(`outside subscribe id: ${value.id} and version: ${value.version}`))}`);
+        return rxjs_1.of([]);
         /*
         return getOldestVersions(
           input.owner,
