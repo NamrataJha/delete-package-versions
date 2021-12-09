@@ -32,25 +32,40 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        return version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).pipe(operators_1.map(versionInfo => {
-            const numberVersionsToDelete = versionInfo.length - input.minVersionsToKeep;
+        const VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).subscribe(result => {
+            const DeleteIds = result;
+            console.log(`DeleteIds: ${DeleteIds}`);
+        });
+        /*
+        return getOldestVersions(
+          input.owner,
+          input.repo,
+          input.packageName,
+          input.numOldVersionsToDelete + input.minVersionsToKeep,
+          input.token
+        ).pipe(
+          map(versionInfo => {
+            const numberVersionsToDelete =
+              versionInfo.length - input.minVersionsToKeep
+    
             if (input.minVersionsToKeep > 0) {
-                return numberVersionsToDelete <= 0
-                    ? []
-                    : versionInfo
-                        .filter(info => !input.ignoreVersions.test(info.version))
-                        .map(info => info.id)
-                        .slice(0, -input.minVersionsToKeep);
+              return numberVersionsToDelete <= 0
+                ? []
+                : versionInfo
+                    .filter(info => !input.ignoreVersions.test(info.version))
+                    .map(info => info.id)
+                    .slice(0, -input.minVersionsToKeep)
+            } else {
+              return numberVersionsToDelete <= 0
+                ? []
+                : versionInfo
+                    .filter(info => !input.ignoreVersions.test(info.version))
+                    .map(info => info.id)
+                    .slice(0, numberVersionsToDelete)
             }
-            else {
-                return numberVersionsToDelete <= 0
-                    ? []
-                    : versionInfo
-                        .filter(info => !input.ignoreVersions.test(info.version))
-                        .map(info => info.id)
-                        .slice(0, numberVersionsToDelete);
-            }
-        }));
+          })
+        )
+        */
     }
     return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
 }
@@ -219,6 +234,28 @@ function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
     }));
 }
 exports.queryForOldestVersions = queryForOldestVersions;
+/*
+export function getOldestVersions(
+  owner: string,
+  repo: string,
+  packageName: string,
+  numVersions: number,
+  token: string
+): Observable<VersionInfo[]> {
+  return queryForOldestVersions(
+    owner,
+    repo,
+    packageName,
+    numVersions,
+    token
+  ).subscribe(
+    result => {
+      const r = result as ArrayCast[]
+      console.log(result)
+    }
+  )
+}
+*/
 function getOldestVersions(owner, repo, packageName, numVersions, token) {
     return queryForOldestVersions(owner, repo, packageName, numVersions, token).pipe(operators_1.map(result => {
         if (result.repository.packages.edges.length < 1) {

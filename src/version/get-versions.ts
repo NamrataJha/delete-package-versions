@@ -73,6 +73,29 @@ export function queryForOldestVersions(
   )
 }
 
+/*
+export function getOldestVersions(
+  owner: string,
+  repo: string,
+  packageName: string,
+  numVersions: number,
+  token: string
+): Observable<VersionInfo[]> {
+  return queryForOldestVersions(
+    owner,
+    repo,
+    packageName,
+    numVersions,
+    token
+  ).subscribe(
+    result => {
+      const r = result as ArrayCast[]
+      console.log(result)
+    }
+  )
+}
+*/
+
 export function getOldestVersions(
   owner: string,
   repo: string,

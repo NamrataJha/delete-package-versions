@@ -3,12 +3,29 @@ import {Observable, of, throwError} from 'rxjs'
 import {deletePackageVersions, getOldestVersions} from './version'
 import {concatMap, map} from 'rxjs/operators'
 
+export interface ArrayCast {
+  id: string
+  version: string
+}
+
 export function getVersionIds(input: Input): Observable<string[]> {
   if (input.packageVersionIds.length > 0) {
     return of(input.packageVersionIds)
   }
 
   if (input.hasOldestVersionQueryInfo()) {
+    const VersionIds = getOldestVersions(
+      input.owner,
+      input.repo,
+      input.packageName,
+      input.numOldVersionsToDelete + input.minVersionsToKeep,
+      input.token
+    ).subscribe(result => {
+      const DeleteIds = result as ArrayCast[]
+      console.log(`DeleteIds: ${DeleteIds}`)
+    })
+
+    /*
     return getOldestVersions(
       input.owner,
       input.repo,
@@ -37,6 +54,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
         }
       })
     )
+    */
   }
 
   return throwError(
