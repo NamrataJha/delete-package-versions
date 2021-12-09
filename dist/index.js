@@ -36,7 +36,7 @@ function getVersionIds(input) {
         //let DeleteIds: string[] = []
         const VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).subscribe(result => {
             //DeleteIds = result as ArrayCast[]
-            //DeleteIds = DeleteIds.concat(result as ArrayCast[])
+            DeleteIds = DeleteIds.concat(result);
             DeleteIds.map(value => console.log(` inside subscribe id0: ${value.id} and version0: ${value.version}`));
             /*
             result.map(value => DeleteIds.push(value.id))
@@ -49,6 +49,7 @@ function getVersionIds(input) {
             */
             //method call to check conditions
             DeleteIds = DeleteIds.filter(value => !input.ignoreVersions.test(value.version));
+            DeleteIds.map(value => console.log(` inside subscribe id1: ${value.id} and version1: ${value.version}`));
             if (DeleteIds.length < input.numOldVersionsToDelete) {
                 console.log(`Call graphQL again`);
             }

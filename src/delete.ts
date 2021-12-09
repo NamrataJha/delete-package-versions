@@ -24,7 +24,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
       input.token
     ).subscribe(result => {
       //DeleteIds = result as ArrayCast[]
-      //DeleteIds = DeleteIds.concat(result as ArrayCast[])
+      DeleteIds = DeleteIds.concat(result as ArrayCast[])
 
       DeleteIds.map(value =>
         console.log(
@@ -43,6 +43,12 @@ export function getVersionIds(input: Input): Observable<string[]> {
       //method call to check conditions
       DeleteIds = DeleteIds.filter(
         value => !input.ignoreVersions.test(value.version)
+      )
+
+      DeleteIds.map(value =>
+        console.log(
+          ` inside subscribe id1: ${value.id} and version1: ${value.version}`
+        )
       )
       if (DeleteIds.length < input.numOldVersionsToDelete) {
         console.log(`Call graphQL again`)
