@@ -94,6 +94,8 @@ export function getVersionIds(input: Input): Observable<string[]> {
         ResultIds.map(value => console.log(`ids3: ${value}`))
         return of(ResultIds)
       })
+    ResultIds.map(value => console.log(`ids4: ${value}`))
+    return of(ResultIds)
   }
 
   return throwError(

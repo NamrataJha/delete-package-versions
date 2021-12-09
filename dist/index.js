@@ -76,6 +76,8 @@ function getVersionIds(input) {
             ResultIds.map(value => console.log(`ids3: ${value}`));
             return rxjs_1.of(ResultIds);
         }));
+        ResultIds.map(value => console.log(`ids4: ${value}`));
+        return rxjs_1.of(ResultIds);
     }
     return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
 }
