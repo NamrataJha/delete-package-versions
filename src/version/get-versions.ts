@@ -89,7 +89,7 @@ export function queryForOldestVersions(
       owner,
       repo,
       package: packageName,
-      last: numVersions,
+      last: 4,
       headers: {
         Accept: 'application/vnd.github.packages-preview+json'
       }

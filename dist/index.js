@@ -32,23 +32,30 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        //let DeleteIds: ArrayCast[] = []
         let DeleteIds = [];
+        //let DeleteIds: string[] = []
         const VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).subscribe(result => {
             //DeleteIds = result as ArrayCast[]
             //DeleteIds = DeleteIds.concat(result as ArrayCast[])
+            console.log(`DeleteIds: ${DeleteIds.map(value => console.log(` inside subscribe id0: ${value.id} and version0: ${value.version}`))}`);
             /*
+            result.map(value => DeleteIds.push(value.id))
+      
             console.log(
-              `DeleteIds: ${DeleteIds.map(value =>
-                console.log(
-                  ` inside subscribe id: ${value.id} and version: ${value.version}`
-                )
+              `inside subscribe Ids: ${DeleteIds.map(value =>
+                console.log(`id0: ${value}`)
               )}`
-            )*/
-            result.map(value => DeleteIds.push(value.id));
-            console.log(`inside subscribe Ids: ${DeleteIds.map(value => console.log(`id0: ${value}`))}`);
+            )
+            */
+            //method call to check conditions
+            DeleteIds = DeleteIds.filter(value => !input.ignoreVersions.test(value.version));
+            if (DeleteIds.length < input.numOldVersionsToDelete) {
+                console.log(`Call graphQL again`);
+            }
+            else {
+                console.log(`sufficient versions available`);
+            }
         });
-        console.log(`Without this outside subscribe Ids: ${DeleteIds.map(value => console.log(`id1: ${value}`))}`);
         /*
         console.log(
           `DeleteIds: ${this.DeleteIds} - ${this.DeleteIds.map(value =>
@@ -273,7 +280,7 @@ function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
         owner,
         repo,
         package: packageName,
-        last: numVersions,
+        last: 4,
         headers: {
             Accept: 'application/vnd.github.packages-preview+json'
         }

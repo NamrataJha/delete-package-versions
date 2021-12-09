@@ -14,8 +14,8 @@ export function getVersionIds(input: Input): Observable<string[]> {
   }
 
   if (input.hasOldestVersionQueryInfo()) {
-    //let DeleteIds: ArrayCast[] = []
-    let DeleteIds: string[] = []
+    let DeleteIds: ArrayCast[] = []
+    //let DeleteIds: string[] = []
     const VersionIds = getOldestVersions(
       input.owner,
       input.repo,
@@ -25,15 +25,15 @@ export function getVersionIds(input: Input): Observable<string[]> {
     ).subscribe(result => {
       //DeleteIds = result as ArrayCast[]
       //DeleteIds = DeleteIds.concat(result as ArrayCast[])
-      /*
+
       console.log(
         `DeleteIds: ${DeleteIds.map(value =>
           console.log(
-            ` inside subscribe id: ${value.id} and version: ${value.version}`
+            ` inside subscribe id0: ${value.id} and version0: ${value.version}`
           )
         )}`
-      )*/
-
+      )
+      /*
       result.map(value => DeleteIds.push(value.id))
 
       console.log(
@@ -41,13 +41,18 @@ export function getVersionIds(input: Input): Observable<string[]> {
           console.log(`id0: ${value}`)
         )}`
       )
+      */
+      //method call to check conditions
+      DeleteIds = DeleteIds.filter(
+        value => !input.ignoreVersions.test(value.version)
+      )
+      if (DeleteIds.length < input.numOldVersionsToDelete) {
+        console.log(`Call graphQL again`)
+      } else {
+        console.log(`sufficient versions available`)
+      }
     })
 
-    console.log(
-      `Without this outside subscribe Ids: ${DeleteIds.map(value =>
-        console.log(`id1: ${value}`)
-      )}`
-    )
     /*
     console.log(
       `DeleteIds: ${this.DeleteIds} - ${this.DeleteIds.map(value =>
