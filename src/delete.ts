@@ -35,6 +35,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
       )*/
 
       result.map(value => DeleteIds.push(value.id))
+      
       console.log(
         `inside subscribe Ids: ${DeleteIds.map(value =>
           console.log(`id: ${value}`)
