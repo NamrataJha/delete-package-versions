@@ -1,7 +1,8 @@
 import {Input} from './input'
 import {EMPTY, Observable, of, SubscribableOrPromise, throwError} from 'rxjs'
 import {deletePackageVersions, getOldestVersions} from './version'
-import {concatMap, expand, ignoreElements, map} from 'rxjs/operators'
+import {concatMap, expand, ignoreElements, map, tap} from 'rxjs/operators'
+import {FindValueOperator} from 'rxjs/internal/operators/find'
 
 export interface VersionInfo {
   id: string
@@ -27,7 +28,12 @@ export function getVersionIds(
         ? getOldestVersions(owner, repo, packageName, 2, value.cursor, token)
         : EMPTY
     ),
-    map(value => value.versions)
+    map(value => value.versions),
+    tap(value =>
+      value.map(info =>
+        console.log(`id0: ${info.id}, version: ${info.version}`)
+      )
+    )
   )
 }
 
@@ -36,21 +42,21 @@ export function finalIds(input: Input): Observable<string[]> {
     return of(input.packageVersionIds)
   }
   if (input.hasOldestVersionQueryInfo()) {
-    getVersionIds(
+    console.log(`in if`)
+    return getVersionIds(
       input.owner,
       input.repo,
       input.packageName,
       '',
       input.token
     ).pipe(
-      map(value =>
-        value.map(info =>
-          console.log(`id0: ${info.id}, version0: ${info.version}`)
-        )
-      )
+      map(value => {
+        return value.map(info => info.id)
+      })
     )
   }
-  return of(<string[]>[])
+
+  return throwError(`no package id found`)
 }
 
 export function deleteVersions(input: Input): Observable<boolean> {
