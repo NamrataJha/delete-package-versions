@@ -1,5 +1,5 @@
 import {Input} from './input'
-import {Observable, of, throwError} from 'rxjs'
+import {Observable, of, SubscribableOrPromise, throwError} from 'rxjs'
 import {deletePackageVersions, getOldestVersions} from './version'
 import {concatMap, ignoreElements, map} from 'rxjs/operators'
 
@@ -22,14 +22,14 @@ export function getVersionIds(input: Input): Observable<string[]> {
   if (input.hasOldestVersionQueryInfo()) {
     let DeleteIds: QueryInfo = {versions: [], cursor: '', paginate: false}
     let ResultIds: string[] = []
-    getOldestVersions(
+    let VersionIds = getOldestVersions(
       input.owner,
       input.repo,
       input.packageName,
       input.numOldVersionsToDelete + input.minVersionsToKeep,
       '',
       input.token
-    ).subscribe(result => {
+    ).subscribe(async result => {
       DeleteIds = result as QueryInfo
 
       console.log(
@@ -56,7 +56,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
       ) {
         console.log(`Call graphQL again`)
 
-        getOldestVersions(
+        await getOldestVersions(
           input.owner,
           input.repo,
           input.packageName,
