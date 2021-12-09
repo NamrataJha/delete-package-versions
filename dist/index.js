@@ -73,6 +73,7 @@ function getVersionIds(input) {
                 });
                 console.log(`end while`);
             }
+            ResultIds.map(value => console.log(`ids3: ${value}`));
             return ResultIds;
         }));
     }
