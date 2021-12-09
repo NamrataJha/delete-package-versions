@@ -18,19 +18,10 @@ module.exports = JSON.parse('{"_args":[["@octokit/rest@16.43.1","/workspaces/del
 /***/ }),
 
 /***/ 9645:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.deleteVersions = exports.getVersionIds = void 0;
 const rxjs_1 = __nccwpck_require__(5805);
@@ -43,7 +34,7 @@ function getVersionIds(input) {
     if (input.hasOldestVersionQueryInfo()) {
         let DeleteIds = { versions: [], cursor: '', paginate: false };
         let ResultIds = [];
-        let VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).subscribe((result) => __awaiter(this, void 0, void 0, function* () {
+        let VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).pipe(operators_1.map(result => {
             DeleteIds = result;
             console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
             DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
@@ -56,7 +47,7 @@ function getVersionIds(input) {
             while (ResultIds.length < input.numOldVersionsToDelete &&
                 DeleteIds.paginate) {
                 console.log(`Call graphQL again`);
-                yield version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, DeleteIds.cursor, input.token).subscribe(resultnew => {
+                version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, DeleteIds.cursor, input.token).pipe(operators_1.map(resultnew => {
                     //DeleteIds = result as ArrayCast[]
                     DeleteIds = resultnew;
                     console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
@@ -66,7 +57,7 @@ function getVersionIds(input) {
                         .filter(value => !input.ignoreVersions.test(value.version))
                         .map(value => value.id));
                     ResultIds.map(value => console.log(` inside subscribe id1: ${value}`));
-                });
+                }));
                 console.log(`end while`);
             }
             return ResultIds;

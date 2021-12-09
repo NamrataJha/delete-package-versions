@@ -29,64 +29,70 @@ export function getVersionIds(input: Input): Observable<string[]> {
       input.numOldVersionsToDelete + input.minVersionsToKeep,
       '',
       input.token
-    ).subscribe(async result => {
-      DeleteIds = result as QueryInfo
+    ).pipe(
+      map(result => {
+        DeleteIds = result as QueryInfo
 
-      console.log(
-        `cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`
-      )
-      DeleteIds.versions.map(value =>
-        console.log(`id0: ${value.id}, version0: ${value.version}`)
-      )
+        console.log(
+          `cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`
+        )
+        DeleteIds.versions.map(value =>
+          console.log(`id0: ${value.id}, version0: ${value.version}`)
+        )
 
-      //method call to check conditions
-      ResultIds = ResultIds.concat(
-        DeleteIds.versions
-          .filter(value => !input.ignoreVersions.test(value.version))
-          .map(value => value.id)
-      )
+        //method call to check conditions
+        ResultIds = ResultIds.concat(
+          DeleteIds.versions
+            .filter(value => !input.ignoreVersions.test(value.version))
+            .map(value => value.id)
+        )
 
-      ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
+        ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
 
-      console.log(`ResultIds length0: ${ResultIds.length}`)
+        console.log(`ResultIds length0: ${ResultIds.length}`)
 
-      while (
-        ResultIds.length < input.numOldVersionsToDelete &&
-        DeleteIds.paginate
-      ) {
-        console.log(`Call graphQL again`)
+        while (
+          ResultIds.length < input.numOldVersionsToDelete &&
+          DeleteIds.paginate
+        ) {
+          console.log(`Call graphQL again`)
 
-        await getOldestVersions(
-          input.owner,
-          input.repo,
-          input.packageName,
-          input.numOldVersionsToDelete + input.minVersionsToKeep,
-          DeleteIds.cursor,
-          input.token
-        ).subscribe(resultnew => {
-          //DeleteIds = result as ArrayCast[]
-          DeleteIds = resultnew as QueryInfo
+          getOldestVersions(
+            input.owner,
+            input.repo,
+            input.packageName,
+            input.numOldVersionsToDelete + input.minVersionsToKeep,
+            DeleteIds.cursor,
+            input.token
+          ).pipe(
+            map(resultnew => {
+              //DeleteIds = result as ArrayCast[]
+              DeleteIds = resultnew as QueryInfo
 
-          console.log(
-            `cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`
+              console.log(
+                `cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`
+              )
+              DeleteIds.versions.map(value =>
+                console.log(`id0: ${value.id}, version0: ${value.version}`)
+              )
+
+              //method call to check conditions
+              ResultIds = ResultIds.concat(
+                DeleteIds.versions
+                  .filter(value => !input.ignoreVersions.test(value.version))
+                  .map(value => value.id)
+              )
+
+              ResultIds.map(value =>
+                console.log(` inside subscribe id1: ${value}`)
+              )
+            })
           )
-          DeleteIds.versions.map(value =>
-            console.log(`id0: ${value.id}, version0: ${value.version}`)
-          )
-
-          //method call to check conditions
-          ResultIds = ResultIds.concat(
-            DeleteIds.versions
-              .filter(value => !input.ignoreVersions.test(value.version))
-              .map(value => value.id)
-          )
-
-          ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
-        })
-        console.log(`end while`)
-      }
-      return ResultIds
-    })
+          console.log(`end while`)
+        }
+        return ResultIds
+      })
+    )
   }
 
   return throwError(
