@@ -43,6 +43,7 @@ function getVersionIds(input) {
                 .filter(value => !input.ignoreVersions.test(value.version))
                 .map(value => value.id));
             ResultIds.map(value => console.log(` inside subscribe id1: ${value}`));
+            console.log(`ResultIds length0: ${ResultIds.length}`);
             while (ResultIds.length < input.numOldVersionsToDelete &&
                 DeleteIds.paginate) {
                 console.log(`Call graphQL again`);

@@ -47,7 +47,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
       )
 
       ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
-
+      console.log(`ResultIds length0: ${ResultIds.length}`)
       while (
         ResultIds.length < input.numOldVersionsToDelete &&
         DeleteIds.paginate
