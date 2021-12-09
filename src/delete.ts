@@ -92,7 +92,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
           console.log(`end while`)
         }
         ResultIds.map(value => console.log(`ids3: ${value}`))
-        return ResultIds
+        return of(ResultIds)
       })
   }
 
