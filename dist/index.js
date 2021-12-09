@@ -33,11 +33,11 @@ function getVersionIds(input) {
     }
     if (input.hasOldestVersionQueryInfo()) {
         let DeleteIds = [];
-        //let DeleteIds: string[] = []
-        const VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).subscribe(result => {
+        let ResultIds = [];
+        const VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).subscribe(result => {
             //DeleteIds = result as ArrayCast[]
             DeleteIds = DeleteIds.concat(result);
-            DeleteIds.map(value => console.log(` inside subscribe id0: ${value.id} and version0: ${value.version}`));
+            DeleteIds.map(value => console.log(` inside subscribe id0: ${value.id} and version0: ${value.version} and cursor0: ${value.cursor} and paginate0: ${value.hasPreviousPage}`));
             /*
             result.map(value => DeleteIds.push(value.id))
       
@@ -48,9 +48,9 @@ function getVersionIds(input) {
             )
             */
             //method call to check conditions
-            DeleteIds = DeleteIds.filter(value => !input.ignoreVersions.test(value.version));
-            DeleteIds.map(value => console.log(` inside subscribe id1: ${value.id} and version1: ${value.version}`));
-            if (DeleteIds.length < input.numOldVersionsToDelete) {
+            ResultIds = DeleteIds.filter(value => !input.ignoreVersions.test(value.version)).map(value => value.id);
+            ResultIds.map(value => console.log(` inside subscribe id1: ${value}`));
+            if (ResultIds.length < input.numOldVersionsToDelete) {
                 console.log(`Call graphQL again`);
             }
             else {
@@ -250,8 +250,7 @@ const query = `
       }
     }
   }`;
-/*
-const paginatequery = `
+const Paginatequery = `
   query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!, $before: String!) {
     repository(owner: $owner, name: $repo) {
       packages(first: 1, names: [$package]) {
@@ -274,23 +273,41 @@ const paginatequery = `
         }
       }
     }
-  }`
-*/
-function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
-    return rxjs_1.from(graphql_1.graphql(token, query, {
-        owner,
-        repo,
-        package: packageName,
-        last: 4,
-        headers: {
-            Accept: 'application/vnd.github.packages-preview+json'
-        }
-    })).pipe(operators_1.catchError((err) => {
-        const msg = 'query for oldest version failed.';
-        return rxjs_1.throwError(err.errors && err.errors.length > 0
-            ? `${msg} ${err.errors[0].message}`
-            : `${msg} verify input parameters are correct`);
-    }));
+  }`;
+function queryForOldestVersions(owner, repo, packageName, numVersions, startCursor, token) {
+    if (startCursor === '') {
+        return rxjs_1.from(graphql_1.graphql(token, query, {
+            owner,
+            repo,
+            package: packageName,
+            last: 4,
+            headers: {
+                Accept: 'application/vnd.github.packages-preview+json'
+            }
+        })).pipe(operators_1.catchError((err) => {
+            const msg = 'query for oldest version failed.';
+            return rxjs_1.throwError(err.errors && err.errors.length > 0
+                ? `${msg} ${err.errors[0].message}`
+                : `${msg} verify input parameters are correct`);
+        }));
+    }
+    else {
+        return rxjs_1.from(graphql_1.graphql(token, Paginatequery, {
+            owner,
+            repo,
+            package: packageName,
+            last: 4,
+            before: startCursor,
+            headers: {
+                Accept: 'application/vnd.github.packages-preview+json'
+            }
+        })).pipe(operators_1.catchError((err) => {
+            const msg = 'query for oldest version failed.';
+            return rxjs_1.throwError(err.errors && err.errors.length > 0
+                ? `${msg} ${err.errors[0].message}`
+                : `${msg} verify input parameters are correct`);
+        }));
+    }
 }
 exports.queryForOldestVersions = queryForOldestVersions;
 /*
@@ -315,18 +332,24 @@ export function getOldestVersions(
   )
 }
 */
-function getOldestVersions(owner, repo, packageName, numVersions, token) {
-    return queryForOldestVersions(owner, repo, packageName, numVersions, token).pipe(operators_1.map(result => {
+function getOldestVersions(owner, repo, packageName, numVersions, startCursor, token) {
+    return queryForOldestVersions(owner, repo, packageName, numVersions, startCursor, token).pipe(operators_1.map(result => {
         if (result.repository.packages.edges.length < 1) {
             console.log(`package: ${packageName} not found for owner: ${owner} in repo: ${repo}`);
             return [];
         }
         const versions = result.repository.packages.edges[0].node.versions.edges;
+        const pages = result.repository.packages.edges[0].node.versions.pageInfo;
         if (versions.length !== numVersions) {
             console.log(`number of versions requested was: ${numVersions}, but found: ${versions.length}`);
         }
         return versions
-            .map(value => ({ id: value.node.id, version: value.node.version }))
+            .map(value => ({
+            id: value.node.id,
+            version: value.node.version,
+            cursor: pages.startCursor,
+            hasPreviousPage: pages.hasPreviousPage
+        }))
             .reverse();
     }));
 }

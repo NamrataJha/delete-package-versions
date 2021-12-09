@@ -6,6 +6,8 @@ import {graphql} from './graphql'
 export interface VersionInfo {
   id: string
   version: string
+  cursor: string
+  hasPreviousPage: boolean
 }
 
 export interface GetVersionsQueryResponse {
@@ -51,8 +53,8 @@ const query = `
       }
     }
   }`
-/*
-const paginatequery = `
+
+const Paginatequery = `
   query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!, $before: String!) {
     repository(owner: $owner, name: $repo) {
       packages(first: 1, names: [$package]) {
@@ -76,34 +78,59 @@ const paginatequery = `
       }
     }
   }`
-*/
+
 export function queryForOldestVersions(
   owner: string,
   repo: string,
   packageName: string,
   numVersions: number,
+  startCursor: string,
   token: string
 ): Observable<GetVersionsQueryResponse> {
-  return from(
-    graphql(token, query, {
-      owner,
-      repo,
-      package: packageName,
-      last: 4,
-      headers: {
-        Accept: 'application/vnd.github.packages-preview+json'
-      }
-    }) as Promise<GetVersionsQueryResponse>
-  ).pipe(
-    catchError((err: GraphQlQueryResponse) => {
-      const msg = 'query for oldest version failed.'
-      return throwError(
-        err.errors && err.errors.length > 0
-          ? `${msg} ${err.errors[0].message}`
-          : `${msg} verify input parameters are correct`
-      )
-    })
-  )
+  if (startCursor === '') {
+    return from(
+      graphql(token, query, {
+        owner,
+        repo,
+        package: packageName,
+        last: 4,
+        headers: {
+          Accept: 'application/vnd.github.packages-preview+json'
+        }
+      }) as Promise<GetVersionsQueryResponse>
+    ).pipe(
+      catchError((err: GraphQlQueryResponse) => {
+        const msg = 'query for oldest version failed.'
+        return throwError(
+          err.errors && err.errors.length > 0
+            ? `${msg} ${err.errors[0].message}`
+            : `${msg} verify input parameters are correct`
+        )
+      })
+    )
+  } else {
+    return from(
+      graphql(token, Paginatequery, {
+        owner,
+        repo,
+        package: packageName,
+        last: 4,
+        before: startCursor,
+        headers: {
+          Accept: 'application/vnd.github.packages-preview+json'
+        }
+      }) as Promise<GetVersionsQueryResponse>
+    ).pipe(
+      catchError((err: GraphQlQueryResponse) => {
+        const msg = 'query for oldest version failed.'
+        return throwError(
+          err.errors && err.errors.length > 0
+            ? `${msg} ${err.errors[0].message}`
+            : `${msg} verify input parameters are correct`
+        )
+      })
+    )
+  }
 }
 
 /*
@@ -134,6 +161,7 @@ export function getOldestVersions(
   repo: string,
   packageName: string,
   numVersions: number,
+  startCursor: string,
   token: string
 ): Observable<VersionInfo[]> {
   return queryForOldestVersions(
@@ -141,6 +169,7 @@ export function getOldestVersions(
     repo,
     packageName,
     numVersions,
+    startCursor,
     token
   ).pipe(
     map(result => {
@@ -152,6 +181,7 @@ export function getOldestVersions(
       }
 
       const versions = result.repository.packages.edges[0].node.versions.edges
+      const pages = result.repository.packages.edges[0].node.versions.pageInfo
 
       if (versions.length !== numVersions) {
         console.log(
@@ -160,7 +190,12 @@ export function getOldestVersions(
       }
 
       return versions
-        .map(value => ({id: value.node.id, version: value.node.version}))
+        .map(value => ({
+          id: value.node.id,
+          version: value.node.version,
+          cursor: pages.startCursor,
+          hasPreviousPage: pages.hasPreviousPage
+        }))
         .reverse()
     })
   )
