@@ -34,7 +34,7 @@ function getVersionIds(input) {
     if (input.hasOldestVersionQueryInfo()) {
         let DeleteIds = { versions: [], cursor: '', paginate: false };
         let ResultIds = [];
-        let VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).subscribe(result => {
+        version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).subscribe(result => {
             DeleteIds = result;
             console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
             DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
@@ -47,7 +47,7 @@ function getVersionIds(input) {
             while (ResultIds.length < input.numOldVersionsToDelete &&
                 DeleteIds.paginate) {
                 console.log(`Call graphQL again`);
-                VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, DeleteIds.cursor, input.token).subscribe(resultnew => {
+                version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, DeleteIds.cursor, input.token).subscribe(resultnew => {
                     //DeleteIds = result as ArrayCast[]
                     DeleteIds = resultnew;
                     console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
@@ -58,6 +58,7 @@ function getVersionIds(input) {
                         .map(value => value.id));
                     ResultIds.map(value => console.log(` inside subscribe id1: ${value}`));
                 });
+                console.log(`end while`);
             }
             return ResultIds;
         });

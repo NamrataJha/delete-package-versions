@@ -22,7 +22,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
   if (input.hasOldestVersionQueryInfo()) {
     let DeleteIds: QueryInfo = {versions: [], cursor: '', paginate: false}
     let ResultIds: string[] = []
-    let VersionIds = getOldestVersions(
+    getOldestVersions(
       input.owner,
       input.repo,
       input.packageName,
@@ -47,13 +47,16 @@ export function getVersionIds(input: Input): Observable<string[]> {
       )
 
       ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
+
       console.log(`ResultIds length0: ${ResultIds.length}`)
+
       while (
         ResultIds.length < input.numOldVersionsToDelete &&
         DeleteIds.paginate
       ) {
         console.log(`Call graphQL again`)
-        VersionIds = getOldestVersions(
+
+        getOldestVersions(
           input.owner,
           input.repo,
           input.packageName,
@@ -80,6 +83,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
 
           ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
         })
+        console.log(`end while`)
       }
       return ResultIds
     })
