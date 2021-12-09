@@ -46,9 +46,9 @@ function getVersionIds(input) {
               )}`
             )*/
             result.map(value => DeleteIds.push(value.id));
-            console.log(`inside subscribe Ids: ${DeleteIds.map(value => console.log(`id: ${value}`))}`);
+            console.log(`inside subscribe Ids: ${DeleteIds.map(value => console.log(`id0: ${value}`))}`);
         });
-        console.log(`outside subscribe Ids: ${DeleteIds.map(value => console.log(`id: ${value}`))}`);
+        console.log(`Without this outside subscribe Ids: ${DeleteIds.map(value => console.log(`id1: ${value}`))}`);
         /*
         console.log(
           `DeleteIds: ${this.DeleteIds} - ${this.DeleteIds.map(value =>
