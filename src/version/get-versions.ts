@@ -16,6 +16,10 @@ export interface GetVersionsQueryResponse {
           name: string
           versions: {
             edges: {node: VersionInfo}[]
+            pageInfo: {
+              startCursor: string
+              hasPreviousPage: boolean
+            }
           }
         }
       }[]
@@ -37,13 +41,42 @@ const query = `
                   version
                 }
               }
+              pageInfo {
+                startCursor
+                hasPreviousPage
+              }
             }
           }
         }
       }
     }
   }`
-
+/*
+const paginatequery = `
+  query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!, $before: String!) {
+    repository(owner: $owner, name: $repo) {
+      packages(first: 1, names: [$package]) {
+        edges {
+          node {
+            name
+            versions(last: $last, before: $before) {
+              edges {
+                node {
+                  id
+                  version
+                }
+              }
+              pageInfo{
+                startCursor
+                hasPreviousPage
+              }
+            }
+          }
+        }
+      }
+    }
+  }`
+*/
 export function queryForOldestVersions(
   owner: string,
   repo: string,

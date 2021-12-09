@@ -14,7 +14,8 @@ export function getVersionIds(input: Input): Observable<string[]> {
   }
 
   if (input.hasOldestVersionQueryInfo()) {
-    let DeleteIds: ArrayCast[] = []
+    //let DeleteIds: ArrayCast[] = []
+    let DeleteIds: string[] = []
     const VersionIds = getOldestVersions(
       input.owner,
       input.repo,
@@ -23,23 +24,37 @@ export function getVersionIds(input: Input): Observable<string[]> {
       input.token
     ).subscribe(result => {
       //DeleteIds = result as ArrayCast[]
-      DeleteIds = DeleteIds.concat(result as ArrayCast[])
+      //DeleteIds = DeleteIds.concat(result as ArrayCast[])
+      /*
       console.log(
         `DeleteIds: ${DeleteIds.map(value =>
           console.log(
             ` inside subscribe id: ${value.id} and version: ${value.version}`
           )
         )}`
+      )*/
+
+      result.map(value => DeleteIds.push(value.id))
+      console.log(
+        `inside subscribe Ids: ${DeleteIds.map(value =>
+          console.log(`id: ${value}`)
+        )}`
       )
     })
 
     console.log(
-      `DeleteIds: ${DeleteIds} - ${DeleteIds.map(value =>
-        console.log(
-          `outside subscribe id: ${value.id} and version: ${value.version}`
-        )
+      `Without this outside subscribe Ids: ${DeleteIds.map(value =>
+        console.log(`id: ${value}`)
       )}`
     )
+    /*
+    console.log(
+      `DeleteIds: ${this.DeleteIds} - ${this.DeleteIds.map(value =>
+        console.log(
+          `outside subscribe id: ${this.value.id} and version: ${value.version}`
+        )
+      )}`
+    )*/
     /*
     return getOldestVersions(
       input.owner,

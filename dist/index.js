@@ -32,13 +32,31 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
+        //let DeleteIds: ArrayCast[] = []
         let DeleteIds = [];
         const VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).subscribe(result => {
             //DeleteIds = result as ArrayCast[]
-            DeleteIds = DeleteIds.concat(result);
-            console.log(`DeleteIds: ${DeleteIds.map(value => console.log(` inside subscribe id: ${value.id} and version: ${value.version}`))}`);
+            //DeleteIds = DeleteIds.concat(result as ArrayCast[])
+            /*
+            console.log(
+              `DeleteIds: ${DeleteIds.map(value =>
+                console.log(
+                  ` inside subscribe id: ${value.id} and version: ${value.version}`
+                )
+              )}`
+            )*/
+            result.map(value => DeleteIds.push(value.id));
+            console.log(`inside subscribe Ids: ${DeleteIds.map(value => console.log(`id: ${value}`))}`);
         });
-        console.log(`DeleteIds: ${DeleteIds} - ${DeleteIds.map(value => console.log(`outside subscribe id: ${value.id} and version: ${value.version}`))}`);
+        console.log(`outside subscribe Ids: ${DeleteIds.map(value => console.log(`id: ${value}`))}`);
+        /*
+        console.log(
+          `DeleteIds: ${this.DeleteIds} - ${this.DeleteIds.map(value =>
+            console.log(
+              `outside subscribe id: ${this.value.id} and version: ${value.version}`
+            )
+          )}`
+        )*/
         /*
         return getOldestVersions(
           input.owner,
@@ -214,12 +232,42 @@ const query = `
                   version
                 }
               }
+              pageInfo {
+                startCursor
+                hasPreviousPage
+              }
             }
           }
         }
       }
     }
   }`;
+/*
+const paginatequery = `
+  query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!, $before: String!) {
+    repository(owner: $owner, name: $repo) {
+      packages(first: 1, names: [$package]) {
+        edges {
+          node {
+            name
+            versions(last: $last, before: $before) {
+              edges {
+                node {
+                  id
+                  version
+                }
+              }
+              pageInfo{
+                startCursor
+                hasPreviousPage
+              }
+            }
+          }
+        }
+      }
+    }
+  }`
+*/
 function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
     return rxjs_1.from(graphql_1.graphql(token, query, {
         owner,
