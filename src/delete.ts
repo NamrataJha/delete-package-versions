@@ -18,7 +18,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
   if (input.hasOldestVersionQueryInfo()) {
     let DeleteIds: ArrayCast[] = []
     let ResultIds: string[] = []
-    const VersionIds = getOldestVersions(
+    let VersionIds = getOldestVersions(
       input.owner,
       input.repo,
       input.packageName,
@@ -28,6 +28,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
     ).subscribe(result => {
       //DeleteIds = result as ArrayCast[]
       DeleteIds = DeleteIds.concat(result as ArrayCast[])
+      let newCursor = DeleteIds.map(value => value.cursor)
 
       DeleteIds.map(value =>
         console.log(
@@ -51,6 +52,43 @@ export function getVersionIds(input: Input): Observable<string[]> {
       ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
       if (ResultIds.length < input.numOldVersionsToDelete) {
         console.log(`Call graphQL again`)
+        VersionIds = getOldestVersions(
+          input.owner,
+          input.repo,
+          input.packageName,
+          input.numOldVersionsToDelete + input.minVersionsToKeep,
+          newCursor[0],
+          input.token
+        ).subscribe(result => {
+          //DeleteIds = result as ArrayCast[]
+          DeleteIds = DeleteIds.concat(result as ArrayCast[])
+
+          DeleteIds.map(value =>
+            console.log(
+              ` inside subscribe id0: ${value.id} and version0: ${value.version} and cursor0: ${value.cursor} and paginate0: ${value.hasPreviousPage}`
+            )
+          )
+          /*
+          result.map(value => DeleteIds.push(value.id))
+    
+          console.log(
+            `inside subscribe Ids: ${DeleteIds.map(value =>
+              console.log(`id0: ${value}`)
+            )}`
+          )
+          */
+          //method call to check conditions
+          ResultIds = DeleteIds.filter(
+            value => !input.ignoreVersions.test(value.version)
+          ).map(value => value.id)
+
+          ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
+          if (ResultIds.length < input.numOldVersionsToDelete) {
+            console.log(`Call graphQL again`)
+          } else {
+            console.log(`sufficient versions available`)
+          }
+        })
       } else {
         console.log(`sufficient versions available`)
       }
