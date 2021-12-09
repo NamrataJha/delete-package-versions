@@ -34,7 +34,7 @@ function getVersionIds(input) {
     if (input.hasOldestVersionQueryInfo()) {
         let DeleteIds = { versions: [], cursor: '', paginate: false };
         let ResultIds = [];
-        let VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).pipe(operators_1.map(result => {
+        let VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).subscribe(result => {
             DeleteIds = result;
             console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
             DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
@@ -61,7 +61,7 @@ function getVersionIds(input) {
                 console.log(`end while`);
             }
             return ResultIds;
-        }));
+        });
     }
     return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
 }
