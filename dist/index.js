@@ -32,93 +32,34 @@ function getVersionIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        let DeleteIds = [];
+        let DeleteIds = { versions: [], cursor: '', paginate: false };
         let ResultIds = [];
         let VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).subscribe(result => {
-            //DeleteIds = result as ArrayCast[]
-            DeleteIds = DeleteIds.concat(result);
-            let newCursor = DeleteIds.map(value => value.cursor);
-            DeleteIds.map(value => console.log(` inside subscribe id0: ${value.id} and version0: ${value.version} and cursor0: ${value.cursor} and paginate0: ${value.hasPreviousPage}`));
-            /*
-            result.map(value => DeleteIds.push(value.id))
-      
-            console.log(
-              `inside subscribe Ids: ${DeleteIds.map(value =>
-                console.log(`id0: ${value}`)
-              )}`
-            )
-            */
+            DeleteIds = result;
+            console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
+            DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
             //method call to check conditions
-            ResultIds = DeleteIds.filter(value => !input.ignoreVersions.test(value.version)).map(value => value.id);
+            ResultIds = ResultIds.concat(DeleteIds.versions
+                .filter(value => !input.ignoreVersions.test(value.version))
+                .map(value => value.id));
             ResultIds.map(value => console.log(` inside subscribe id1: ${value}`));
-            if (ResultIds.length < input.numOldVersionsToDelete) {
+            while (ResultIds.length < input.numOldVersionsToDelete &&
+                DeleteIds.paginate) {
                 console.log(`Call graphQL again`);
-                VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, newCursor[0], input.token).subscribe(result => {
+                VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, DeleteIds.cursor, input.token).subscribe(resultnew => {
                     //DeleteIds = result as ArrayCast[]
-                    DeleteIds = DeleteIds.concat(result);
-                    DeleteIds.map(value => console.log(` inside subscribe id0: ${value.id} and version0: ${value.version} and cursor0: ${value.cursor} and paginate0: ${value.hasPreviousPage}`));
-                    /*
-                    result.map(value => DeleteIds.push(value.id))
-              
-                    console.log(
-                      `inside subscribe Ids: ${DeleteIds.map(value =>
-                        console.log(`id0: ${value}`)
-                      )}`
-                    )
-                    */
+                    DeleteIds = resultnew;
+                    console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
+                    DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
                     //method call to check conditions
-                    ResultIds = DeleteIds.filter(value => !input.ignoreVersions.test(value.version)).map(value => value.id);
+                    ResultIds = ResultIds.concat(DeleteIds.versions
+                        .filter(value => !input.ignoreVersions.test(value.version))
+                        .map(value => value.id));
                     ResultIds.map(value => console.log(` inside subscribe id1: ${value}`));
-                    if (ResultIds.length < input.numOldVersionsToDelete) {
-                        console.log(`Call graphQL again`);
-                    }
-                    else {
-                        console.log(`sufficient versions available`);
-                    }
                 });
             }
-            else {
-                console.log(`sufficient versions available`);
-            }
+            return ResultIds;
         });
-        /*
-        console.log(
-          `DeleteIds: ${this.DeleteIds} - ${this.DeleteIds.map(value =>
-            console.log(
-              `outside subscribe id: ${this.value.id} and version: ${value.version}`
-            )
-          )}`
-        )*/
-        /*
-        return getOldestVersions(
-          input.owner,
-          input.repo,
-          input.packageName,
-          input.numOldVersionsToDelete + input.minVersionsToKeep,
-          input.token
-        ).pipe(
-          map(versionInfo => {
-            const numberVersionsToDelete =
-              versionInfo.length - input.minVersionsToKeep
-    
-            if (input.minVersionsToKeep > 0) {
-              return numberVersionsToDelete <= 0
-                ? []
-                : versionInfo
-                    .filter(info => !input.ignoreVersions.test(info.version))
-                    .map(info => info.id)
-                    .slice(0, -input.minVersionsToKeep)
-            } else {
-              return numberVersionsToDelete <= 0
-                ? []
-                : versionInfo
-                    .filter(info => !input.ignoreVersions.test(info.version))
-                    .map(info => info.id)
-                    .slice(0, numberVersionsToDelete)
-            }
-          })
-        )
-        */
     }
     return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
 }
@@ -367,14 +308,14 @@ function getOldestVersions(owner, repo, packageName, numVersions, startCursor, t
         if (versions.length !== numVersions) {
             console.log(`number of versions requested was: ${numVersions}, but found: ${versions.length}`);
         }
-        return versions
-            .map(value => ({
-            id: value.node.id,
-            version: value.node.version,
+        const r = {
+            versions: versions
+                .map(value => ({ id: value.node.id, version: value.node.version }))
+                .reverse(),
             cursor: pages.startCursor,
-            hasPreviousPage: pages.hasPreviousPage
-        }))
-            .reverse();
+            paginate: pages.hasPreviousPage
+        };
+        return r;
     }));
 }
 exports.getOldestVersions = getOldestVersions;

@@ -2,12 +2,23 @@ import {GraphQlQueryResponse} from '@octokit/graphql/dist-types/types'
 import {Observable, from, throwError} from 'rxjs'
 import {catchError, map} from 'rxjs/operators'
 import {graphql} from './graphql'
-
+/*
 export interface VersionInfo {
   id: string
   version: string
   cursor: string
   hasPreviousPage: boolean
+}*/
+
+export interface VersionInfo {
+  id: string
+  version: string
+}
+
+export interface QueryInfo {
+  versions: VersionInfo[]
+  cursor: string
+  paginate: boolean
 }
 
 export interface GetVersionsQueryResponse {
@@ -163,7 +174,7 @@ export function getOldestVersions(
   numVersions: number,
   startCursor: string,
   token: string
-): Observable<VersionInfo[]> {
+): Observable<QueryInfo | never[]> {
   return queryForOldestVersions(
     owner,
     repo,
@@ -189,14 +200,15 @@ export function getOldestVersions(
         )
       }
 
-      return versions
-        .map(value => ({
-          id: value.node.id,
-          version: value.node.version,
-          cursor: pages.startCursor,
-          hasPreviousPage: pages.hasPreviousPage
-        }))
-        .reverse()
+      const r: QueryInfo = {
+        versions: versions
+          .map(value => ({id: value.node.id, version: value.node.version}))
+          .reverse(),
+        cursor: pages.startCursor,
+        paginate: pages.hasPreviousPage
+      }
+
+      return r
     })
   )
 }

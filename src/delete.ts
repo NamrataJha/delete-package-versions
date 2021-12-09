@@ -1,13 +1,17 @@
 import {Input} from './input'
 import {Observable, of, throwError} from 'rxjs'
 import {deletePackageVersions, getOldestVersions} from './version'
-import {concatMap, map} from 'rxjs/operators'
+import {concatMap, ignoreElements, map} from 'rxjs/operators'
 
-export interface ArrayCast {
+export interface VersionInfo {
   id: string
   version: string
+}
+
+export interface QueryInfo {
+  versions: VersionInfo[]
   cursor: string
-  hasPreviousPage: boolean
+  paginate: boolean
 }
 
 export function getVersionIds(input: Input): Observable<string[]> {
@@ -16,7 +20,7 @@ export function getVersionIds(input: Input): Observable<string[]> {
   }
 
   if (input.hasOldestVersionQueryInfo()) {
-    let DeleteIds: ArrayCast[] = []
+    let DeleteIds: QueryInfo = {versions: [], cursor: '', paginate: false}
     let ResultIds: string[] = []
     let VersionIds = getOldestVersions(
       input.owner,
@@ -26,112 +30,59 @@ export function getVersionIds(input: Input): Observable<string[]> {
       '',
       input.token
     ).subscribe(result => {
-      //DeleteIds = result as ArrayCast[]
-      DeleteIds = DeleteIds.concat(result as ArrayCast[])
-      let newCursor = DeleteIds.map(value => value.cursor)
-
-      DeleteIds.map(value =>
-        console.log(
-          ` inside subscribe id0: ${value.id} and version0: ${value.version} and cursor0: ${value.cursor} and paginate0: ${value.hasPreviousPage}`
-        )
-      )
-      /*
-      result.map(value => DeleteIds.push(value.id))
+      DeleteIds = result as QueryInfo
 
       console.log(
-        `inside subscribe Ids: ${DeleteIds.map(value =>
-          console.log(`id0: ${value}`)
-        )}`
+        `cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`
       )
-      */
+      DeleteIds.versions.map(value =>
+        console.log(`id0: ${value.id}, version0: ${value.version}`)
+      )
+
       //method call to check conditions
-      ResultIds = DeleteIds.filter(
-        value => !input.ignoreVersions.test(value.version)
-      ).map(value => value.id)
+      ResultIds = ResultIds.concat(
+        DeleteIds.versions
+          .filter(value => !input.ignoreVersions.test(value.version))
+          .map(value => value.id)
+      )
 
       ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
-      if (ResultIds.length < input.numOldVersionsToDelete) {
+
+      while (
+        ResultIds.length < input.numOldVersionsToDelete &&
+        DeleteIds.paginate
+      ) {
         console.log(`Call graphQL again`)
         VersionIds = getOldestVersions(
           input.owner,
           input.repo,
           input.packageName,
           input.numOldVersionsToDelete + input.minVersionsToKeep,
-          newCursor[0],
+          DeleteIds.cursor,
           input.token
-        ).subscribe(result => {
+        ).subscribe(resultnew => {
           //DeleteIds = result as ArrayCast[]
-          DeleteIds = DeleteIds.concat(result as ArrayCast[])
+          DeleteIds = resultnew as QueryInfo
 
-          DeleteIds.map(value =>
-            console.log(
-              ` inside subscribe id0: ${value.id} and version0: ${value.version} and cursor0: ${value.cursor} and paginate0: ${value.hasPreviousPage}`
-            )
-          )
-          /*
-          result.map(value => DeleteIds.push(value.id))
-    
           console.log(
-            `inside subscribe Ids: ${DeleteIds.map(value =>
-              console.log(`id0: ${value}`)
-            )}`
+            `cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`
           )
-          */
+          DeleteIds.versions.map(value =>
+            console.log(`id0: ${value.id}, version0: ${value.version}`)
+          )
+
           //method call to check conditions
-          ResultIds = DeleteIds.filter(
-            value => !input.ignoreVersions.test(value.version)
-          ).map(value => value.id)
+          ResultIds = ResultIds.concat(
+            DeleteIds.versions
+              .filter(value => !input.ignoreVersions.test(value.version))
+              .map(value => value.id)
+          )
 
           ResultIds.map(value => console.log(` inside subscribe id1: ${value}`))
-          if (ResultIds.length < input.numOldVersionsToDelete) {
-            console.log(`Call graphQL again`)
-          } else {
-            console.log(`sufficient versions available`)
-          }
         })
-      } else {
-        console.log(`sufficient versions available`)
       }
+      return ResultIds
     })
-
-    /*
-    console.log(
-      `DeleteIds: ${this.DeleteIds} - ${this.DeleteIds.map(value =>
-        console.log(
-          `outside subscribe id: ${this.value.id} and version: ${value.version}`
-        )
-      )}`
-    )*/
-    /*
-    return getOldestVersions(
-      input.owner,
-      input.repo,
-      input.packageName,
-      input.numOldVersionsToDelete + input.minVersionsToKeep,
-      input.token
-    ).pipe(
-      map(versionInfo => {
-        const numberVersionsToDelete =
-          versionInfo.length - input.minVersionsToKeep
-
-        if (input.minVersionsToKeep > 0) {
-          return numberVersionsToDelete <= 0
-            ? []
-            : versionInfo
-                .filter(info => !input.ignoreVersions.test(info.version))
-                .map(info => info.id)
-                .slice(0, -input.minVersionsToKeep)
-        } else {
-          return numberVersionsToDelete <= 0
-            ? []
-            : versionInfo
-                .filter(info => !input.ignoreVersions.test(info.version))
-                .map(info => info.id)
-                .slice(0, numberVersionsToDelete)
-        }
-      })
-    )
-    */
   }
 
   return throwError(
