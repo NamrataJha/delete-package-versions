@@ -37,7 +37,7 @@ function getVersionIds(input) {
         const VersionIds = version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, input.token).subscribe(result => {
             //DeleteIds = result as ArrayCast[]
             //DeleteIds = DeleteIds.concat(result as ArrayCast[])
-            console.log(`DeleteIds: ${DeleteIds.map(value => console.log(` inside subscribe id0: ${value.id} and version0: ${value.version}`))}`);
+            DeleteIds.map(value => console.log(` inside subscribe id0: ${value.id} and version0: ${value.version}`));
             /*
             result.map(value => DeleteIds.push(value.id))
       
