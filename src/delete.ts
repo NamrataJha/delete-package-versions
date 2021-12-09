@@ -40,7 +40,6 @@ export function getVersionIds(input: Input): Observable<string[]> {
         )
       )}`
     )
-    return of([])
     /*
     return getOldestVersions(
       input.owner,

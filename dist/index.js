@@ -39,7 +39,6 @@ function getVersionIds(input) {
             console.log(`DeleteIds: ${DeleteIds.map(value => console.log(` inside subscribe id: ${value.id} and version: ${value.version}`))}`);
         });
         console.log(`DeleteIds: ${DeleteIds} - ${DeleteIds.map(value => console.log(`outside subscribe id: ${value.id} and version: ${value.version}`))}`);
-        return rxjs_1.of([]);
         /*
         return getOldestVersions(
           input.owner,
