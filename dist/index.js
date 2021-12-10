@@ -37,17 +37,16 @@ const rxjs_1 = __nccwpck_require__(5805);
 const version_1 = __nccwpck_require__(4428);
 const operators_1 = __nccwpck_require__(7801);
 function getVersionIds(input) {
-    if (input.packageVersionIds.length > 0) {
-        return rxjs_1.of(input.packageVersionIds);
-    }
-    if (input.hasOldestVersionQueryInfo()) {
-        let DeleteIds = { versions: [], cursor: '', paginate: false };
-        let ResultIds = [];
-        version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token)
-            .toPromise()
-            .then((result) => __awaiter(this, void 0, void 0, function* () {
-            DeleteIds = result;
+    return __awaiter(this, void 0, void 0, function* () {
+        if (input.packageVersionIds.length > 0) {
+            return rxjs_1.of(input.packageVersionIds);
+        }
+        if (input.hasOldestVersionQueryInfo()) {
+            let DeleteIds = { versions: [], cursor: '', paginate: false };
+            let ResultIds = [];
+            DeleteIds = (yield version_1.getOldestVersions(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete + input.minVersionsToKeep, '', input.token).toPromise());
             console.log(`cursor: ${DeleteIds.cursor} and paginate: ${DeleteIds.paginate}`);
+            DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
             DeleteIds.versions.map(value => console.log(`id0: ${value.id}, version0: ${value.version}`));
             //method call to check conditions
             ResultIds = ResultIds.concat(DeleteIds.versions
@@ -75,9 +74,9 @@ function getVersionIds(input) {
             }
             ResultIds.map(value => console.log(`ids3: ${value}`));
             return rxjs_1.of(ResultIds);
-        }));
-    }
-    return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
+        }
+        return rxjs_1.throwError("Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input or provide the 'package-name' and 'num-old-versions-to-delete' inputs to dynamically retrieve oldest versions");
+    });
 }
 exports.getVersionIds = getVersionIds;
 function deleteVersions(input) {
@@ -88,7 +87,22 @@ function deleteVersions(input) {
         console.log('Number of old versions to delete input is 0 or less, no versions will be deleted');
         return rxjs_1.of(true);
     }
-    return getVersionIds(input).pipe(operators_1.concatMap(ids => version_1.deletePackageVersions(ids, input.token)));
+    /*
+    let res = from (getVersionIds(input))
+  
+  
+    
+    return res.pipe(value => {
+      value.pipe( info => { info.pipe(
+        concatMap(ids => deletePackageVersions(ids, input.token))
+      )
+      })
+    })
+    */
+    getVersionIds(input).then((res) => {
+        res.pipe(operators_1.concatMap(ids => version_1.deletePackageVersions(ids, input.token)));
+    });
+    return rxjs_1.of(true);
 }
 exports.deleteVersions = deleteVersions;
 
