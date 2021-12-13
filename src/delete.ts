@@ -125,7 +125,7 @@ export function deleteVersions(input: Input): Observable<boolean> {
     return throwError('No token found')
   }
 
-  if (input.numOldVersionsToDelete <= 0) {
+  if (input.numOldVersionsToDelete < 0) {
     console.log(
       'Number of old versions to delete input is 0 or less, no versions will be deleted'
     )

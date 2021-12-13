@@ -78,7 +78,7 @@ function deleteVersions(input) {
     if (!input.token) {
         return rxjs_1.throwError('No token found');
     }
-    if (input.numOldVersionsToDelete <= 0) {
+    if (input.numOldVersionsToDelete < 0) {
         console.log('Number of old versions to delete input is 0 or less, no versions will be deleted');
         return rxjs_1.of(true);
     }
@@ -119,7 +119,9 @@ class Input {
         this.ignoreVersions = validatedParams.ignoreVersions;
         this.deletePreReleaseVersions = validatedParams.deletePreReleaseVersions;
         this.token = validatedParams.token;
+        console.log(`in input`);
         if (this.minVersionsToKeep > 0) {
+            console.log(`updated due to min versions to keep`);
             this.numOldVersionsToDelete = 0;
         }
         if (this.deletePreReleaseVersions === 'true') {
@@ -128,6 +130,7 @@ class Input {
         }
     }
     hasOldestVersionQueryInfo() {
+        console.log(`checking query info`);
         return !!(this.owner &&
             this.repo &&
             this.packageName &&
