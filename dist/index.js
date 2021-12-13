@@ -58,13 +58,13 @@ function finalIds(input) {
                 const temp = totalCount - input.minVersionsToKeep;
                 input.numOldVersionsToDelete =
                     input.numOldVersionsToDelete + value.length;
-                console.log(`temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`);
+                console.log(`temp: ${temp} numVersions: ${input.numOldVersionsToDelete} total count: ${totalCount}`);
                 if (temp > value.length) {
                     return temp - input.numOldVersionsToDelete > value.length
                         ? value.map(info => info.id)
                         : value
                             .map(info => info.id)
-                            .slice(0, temp - input.numOldVersionsToDelete);
+                            .slice(0, input.numOldVersionsToDelete - temp);
                 }
                 else
                     return [];
