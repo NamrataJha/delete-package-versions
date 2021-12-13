@@ -27,9 +27,9 @@ exports.deleteVersions = exports.finalIds = exports.getVersionIds = void 0;
 const rxjs_1 = __nccwpck_require__(5805);
 const version_1 = __nccwpck_require__(4428);
 const operators_1 = __nccwpck_require__(7801);
-function getVersionIds(owner, repo, packageName, ignoreVersions, cursor, token) {
-    return version_1.getOldestVersions(owner, repo, packageName, 2, ignoreVersions, cursor, token).pipe(operators_1.expand(value => value.paginate
-        ? version_1.getOldestVersions(owner, repo, packageName, 2, ignoreVersions, value.cursor, token)
+function getVersionIds(owner, repo, packageName, numVersions, ignoreVersions, cursor, token) {
+    return version_1.getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, cursor, token).pipe(operators_1.expand(value => value.paginate
+        ? version_1.getOldestVersions(owner, repo, packageName, numVersions - value.versions.length, ignoreVersions, value.cursor, token)
         : rxjs_1.EMPTY), operators_1.map(value => value.versions), operators_1.tap(value => value.map(info => console.log(`id0: ${info.id}, version: ${info.version}`))));
 }
 exports.getVersionIds = getVersionIds;
@@ -39,7 +39,7 @@ function finalIds(input) {
     }
     if (input.hasOldestVersionQueryInfo()) {
         console.log(`in if`);
-        return getVersionIds(input.owner, input.repo, input.packageName, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
+        return getVersionIds(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
             const temp = input.numOldVersionsToDelete;
             input.numOldVersionsToDelete =
                 input.numOldVersionsToDelete - value.length;

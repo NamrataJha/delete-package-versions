@@ -1,8 +1,7 @@
 import {Input} from './input'
-import {EMPTY, Observable, of, SubscribableOrPromise, throwError} from 'rxjs'
+import {EMPTY, Observable, of, throwError} from 'rxjs'
 import {deletePackageVersions, getOldestVersions} from './version'
-import {concatMap, expand, ignoreElements, map, tap} from 'rxjs/operators'
-import {FindValueOperator} from 'rxjs/internal/operators/find'
+import {concatMap, expand, map, tap} from 'rxjs/operators'
 
 export interface VersionInfo {
   id: string
@@ -19,6 +18,7 @@ export function getVersionIds(
   owner: string,
   repo: string,
   packageName: string,
+  numVersions: number,
   ignoreVersions: RegExp,
   cursor: string,
   token: string
@@ -27,7 +27,7 @@ export function getVersionIds(
     owner,
     repo,
     packageName,
-    2,
+    numVersions,
     ignoreVersions,
     cursor,
     token
@@ -38,7 +38,7 @@ export function getVersionIds(
             owner,
             repo,
             packageName,
-            2,
+            numVersions - value.versions.length,
             ignoreVersions,
             value.cursor,
             token
@@ -64,6 +64,7 @@ export function finalIds(input: Input): Observable<string[]> {
       input.owner,
       input.repo,
       input.packageName,
+      input.numOldVersionsToDelete,
       input.ignoreVersions,
       '',
       input.token
