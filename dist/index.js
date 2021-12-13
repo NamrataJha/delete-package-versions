@@ -40,6 +40,7 @@ function finalIds(input) {
     }
     if (input.hasOldestVersionQueryInfo()) {
         if (input.minVersionsToKeep < 0) {
+            console.log(`in numOldVersionsToDelete`);
             return getVersionIds(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
                 const temp = input.numOldVersionsToDelete;
                 input.numOldVersionsToDelete =
@@ -51,7 +52,9 @@ function finalIds(input) {
             }));
         }
         else {
+            console.log(`in min versions to keep`);
             return getVersionIds(input.owner, input.repo, input.packageName, 4, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
+                console.log(`point 1`);
                 const temp = totalCount - input.minVersionsToKeep;
                 input.numOldVersionsToDelete =
                     input.numOldVersionsToDelete + value.length;
@@ -128,7 +131,7 @@ class Input {
         return !!(this.owner &&
             this.repo &&
             this.packageName &&
-            this.numOldVersionsToDelete > 0 &&
+            this.numOldVersionsToDelete >= 0 &&
             this.minVersionsToKeep >= 0 &&
             this.token);
     }

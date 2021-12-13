@@ -64,6 +64,7 @@ export function finalIds(input: Input): Observable<string[]> {
   }
   if (input.hasOldestVersionQueryInfo()) {
     if (input.minVersionsToKeep < 0) {
+      console.log(`in numOldVersionsToDelete`)
       return getVersionIds(
         input.owner,
         input.repo,
@@ -86,6 +87,7 @@ export function finalIds(input: Input): Observable<string[]> {
         })
       )
     } else {
+      console.log(`in min versions to keep`)
       return getVersionIds(
         input.owner,
         input.repo,
@@ -96,6 +98,7 @@ export function finalIds(input: Input): Observable<string[]> {
         input.token
       ).pipe(
         map(value => {
+          console.log(`point 1`)
           const temp = totalCount - input.minVersionsToKeep
           input.numOldVersionsToDelete =
             input.numOldVersionsToDelete + value.length
