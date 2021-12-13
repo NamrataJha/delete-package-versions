@@ -77,10 +77,7 @@ export function finalIds(input: Input): Observable<string[]> {
         console.log(
           `temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`
         )
-        return value
-          .filter(info => input.ignoreVersions.test(info.version))
-          .map(info => info.id)
-          .slice(0, temp)
+        return value.map(info => info.id).slice(0, temp)
       })
     )
   }

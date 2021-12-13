@@ -45,10 +45,7 @@ function finalIds(input) {
                     ? 0
                     : input.numOldVersionsToDelete - value.length;
             console.log(`temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`);
-            return value
-                .filter(info => input.ignoreVersions.test(info.version))
-                .map(info => info.id)
-                .slice(0, temp);
+            return value.map(info => info.id).slice(0, temp);
         }));
     }
     return rxjs_1.throwError(`no package id found`);
@@ -306,6 +303,7 @@ function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions
         }
         r = {
             versions: versions
+                .filter(value => !ignoreVersions.test(value.node.version))
                 .map(value => ({ id: value.node.id, version: value.node.version }))
                 .reverse(),
             cursor: pages.startCursor,
