@@ -27,10 +27,11 @@ exports.deleteVersions = exports.finalIds = exports.getVersionIds = void 0;
 const rxjs_1 = __nccwpck_require__(5805);
 const version_1 = __nccwpck_require__(4428);
 const operators_1 = __nccwpck_require__(7801);
+let totalCount;
 function getVersionIds(owner, repo, packageName, numVersions, ignoreVersions, cursor, token) {
     return version_1.getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, cursor, token).pipe(operators_1.expand(value => value.paginate
         ? version_1.getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, value.cursor, token)
-        : rxjs_1.EMPTY), operators_1.map(value => value.versions), operators_1.tap(value => value.map(info => console.log(`id0: ${info.id}, version: ${info.version}`))));
+        : rxjs_1.EMPTY), operators_1.tap(value => (totalCount = value.totalCount)), operators_1.map(value => value.versions), operators_1.tap(value => value.map(info => console.log(`id0: ${info.id}, version: ${info.version}`))));
 }
 exports.getVersionIds = getVersionIds;
 function finalIds(input) {
@@ -38,15 +39,34 @@ function finalIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        return getVersionIds(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
-            const temp = input.numOldVersionsToDelete;
-            input.numOldVersionsToDelete =
-                input.numOldVersionsToDelete - value.length <= 0
-                    ? 0
-                    : input.numOldVersionsToDelete - value.length;
-            console.log(`temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`);
-            return value.map(info => info.id).slice(0, temp);
-        }));
+        if (input.minVersionsToKeep < 0) {
+            return getVersionIds(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
+                const temp = input.numOldVersionsToDelete;
+                input.numOldVersionsToDelete =
+                    input.numOldVersionsToDelete - value.length <= 0
+                        ? 0
+                        : input.numOldVersionsToDelete - value.length;
+                console.log(`temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`);
+                return value.map(info => info.id).slice(0, temp);
+            }));
+        }
+        else {
+            return getVersionIds(input.owner, input.repo, input.packageName, 4, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
+                const temp = totalCount - input.minVersionsToKeep;
+                input.numOldVersionsToDelete =
+                    input.numOldVersionsToDelete + value.length;
+                console.log(`temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`);
+                if (temp > value.length) {
+                    return temp - input.numOldVersionsToDelete > value.length
+                        ? value.map(info => info.id)
+                        : value
+                            .map(info => info.id)
+                            .slice(0, temp - input.numOldVersionsToDelete);
+                }
+                else
+                    return [];
+            }));
+        }
     }
     return rxjs_1.throwError(`no package id found`);
 }
@@ -97,7 +117,7 @@ class Input {
         this.deletePreReleaseVersions = validatedParams.deletePreReleaseVersions;
         this.token = validatedParams.token;
         if (this.minVersionsToKeep > 0) {
-            this.numOldVersionsToDelete = 100 - this.minVersionsToKeep;
+            this.numOldVersionsToDelete = 0;
         }
         if (this.deletePreReleaseVersions === 'true') {
             this.numOldVersionsToDelete = 100 - this.minVersionsToKeep;
@@ -186,6 +206,7 @@ const query = `
           node {
             name
             versions(last: $last) {
+              totalCount
               edges {
                 node {
                   id
@@ -210,6 +231,7 @@ const Paginatequery = `
           node {
             name
             versions(last: $last, before: $before) {
+              totalCount
               edges {
                 node {
                   id
@@ -292,12 +314,14 @@ function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions
             r = {
                 versions: [],
                 cursor: '',
-                paginate: false
+                paginate: false,
+                totalCount: 0
             };
             return r;
         }
         const versions = result.repository.packages.edges[0].node.versions.edges;
         const pages = result.repository.packages.edges[0].node.versions.pageInfo;
+        const count = result.repository.packages.edges[0].node.versions.totalCount;
         if (versions.length !== numVersions) {
             console.log(`number of versions requested was: ${numVersions}, but found: ${versions.length}`);
         }
@@ -307,7 +331,8 @@ function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions
                 .map(value => ({ id: value.node.id, version: value.node.version }))
                 .reverse(),
             cursor: pages.startCursor,
-            paginate: pages.hasPreviousPage
+            paginate: pages.hasPreviousPage,
+            totalCount: count
         };
         return r;
     }));

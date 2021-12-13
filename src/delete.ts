@@ -12,7 +12,10 @@ export interface QueryInfo {
   versions: VersionInfo[]
   cursor: string
   paginate: boolean
+  totalCount: number
 }
+
+let totalCount: number
 
 export function getVersionIds(
   owner: string,
@@ -45,6 +48,7 @@ export function getVersionIds(
           )
         : EMPTY
     ),
+    tap(value => (totalCount = value.totalCount)),
     map(value => value.versions),
     tap(value =>
       value.map(info =>
@@ -59,27 +63,55 @@ export function finalIds(input: Input): Observable<string[]> {
     return of(input.packageVersionIds)
   }
   if (input.hasOldestVersionQueryInfo()) {
-    return getVersionIds(
-      input.owner,
-      input.repo,
-      input.packageName,
-      input.numOldVersionsToDelete,
-      input.ignoreVersions,
-      '',
-      input.token
-    ).pipe(
-      map(value => {
-        const temp = input.numOldVersionsToDelete
-        input.numOldVersionsToDelete =
-          input.numOldVersionsToDelete - value.length <= 0
-            ? 0
-            : input.numOldVersionsToDelete - value.length
-        console.log(
-          `temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`
-        )
-        return value.map(info => info.id).slice(0, temp)
-      })
-    )
+    if (input.minVersionsToKeep < 0) {
+      return getVersionIds(
+        input.owner,
+        input.repo,
+        input.packageName,
+        input.numOldVersionsToDelete,
+        input.ignoreVersions,
+        '',
+        input.token
+      ).pipe(
+        map(value => {
+          const temp = input.numOldVersionsToDelete
+          input.numOldVersionsToDelete =
+            input.numOldVersionsToDelete - value.length <= 0
+              ? 0
+              : input.numOldVersionsToDelete - value.length
+          console.log(
+            `temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`
+          )
+          return value.map(info => info.id).slice(0, temp)
+        })
+      )
+    } else {
+      return getVersionIds(
+        input.owner,
+        input.repo,
+        input.packageName,
+        4,
+        input.ignoreVersions,
+        '',
+        input.token
+      ).pipe(
+        map(value => {
+          const temp = totalCount - input.minVersionsToKeep
+          input.numOldVersionsToDelete =
+            input.numOldVersionsToDelete + value.length
+          console.log(
+            `temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`
+          )
+          if (temp > value.length) {
+            return temp - input.numOldVersionsToDelete > value.length
+              ? value.map(info => info.id)
+              : value
+                  .map(info => info.id)
+                  .slice(0, temp - input.numOldVersionsToDelete)
+          } else return []
+        })
+      )
+    }
   }
 
   return throwError(`no package id found`)

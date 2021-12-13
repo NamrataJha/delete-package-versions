@@ -47,7 +47,7 @@ export class Input {
     this.token = validatedParams.token
 
     if (this.minVersionsToKeep > 0) {
-      this.numOldVersionsToDelete = 100 - this.minVersionsToKeep
+      this.numOldVersionsToDelete = 0
     }
 
     if (this.deletePreReleaseVersions === 'true') {

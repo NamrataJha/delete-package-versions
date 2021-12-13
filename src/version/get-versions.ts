@@ -19,6 +19,7 @@ export interface QueryInfo {
   versions: VersionInfo[]
   cursor: string
   paginate: boolean
+  totalCount: number
 }
 
 export interface GetVersionsQueryResponse {
@@ -28,6 +29,7 @@ export interface GetVersionsQueryResponse {
         node: {
           name: string
           versions: {
+            totalCount: number
             edges: {node: VersionInfo}[]
             pageInfo: {
               startCursor: string
@@ -48,6 +50,7 @@ const query = `
           node {
             name
             versions(last: $last) {
+              totalCount
               edges {
                 node {
                   id
@@ -73,6 +76,7 @@ const Paginatequery = `
           node {
             name
             versions(last: $last, before: $before) {
+              totalCount
               edges {
                 node {
                   id
@@ -193,13 +197,15 @@ export function getOldestVersions(
         r = {
           versions: <VersionInfo[]>[],
           cursor: '',
-          paginate: false
+          paginate: false,
+          totalCount: 0
         }
         return r
       }
 
       const versions = result.repository.packages.edges[0].node.versions.edges
       const pages = result.repository.packages.edges[0].node.versions.pageInfo
+      const count = result.repository.packages.edges[0].node.versions.totalCount
 
       if (versions.length !== numVersions) {
         console.log(
@@ -213,7 +219,8 @@ export function getOldestVersions(
           .map(value => ({id: value.node.id, version: value.node.version}))
           .reverse(),
         cursor: pages.startCursor,
-        paginate: pages.hasPreviousPage
+        paginate: pages.hasPreviousPage,
+        totalCount: count
       }
 
       return r
