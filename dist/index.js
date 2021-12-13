@@ -102,6 +102,7 @@ function deleteVersions(input) {
     getVersionIds(input).then((res) => {
         res.pipe(operators_1.concatMap(ids => version_1.deletePackageVersions(ids, input.token)));
     });
+    console.log(`return`);
     return rxjs_1.of(true);
 }
 exports.deleteVersions = deleteVersions;

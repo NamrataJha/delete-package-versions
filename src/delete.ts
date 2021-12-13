@@ -127,5 +127,7 @@ export function deleteVersions(input: Input): Observable<boolean> {
   getVersionIds(input).then((res: Observable<string[]>) => {
     res.pipe(concatMap(ids => deletePackageVersions(ids, input.token)))
   })
+
+  console.log(`return`)
   return of(true)
 }
