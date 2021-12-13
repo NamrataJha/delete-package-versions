@@ -75,10 +75,10 @@ export function finalIds(input: Input): Observable<string[]> {
             ? 0
             : input.numOldVersionsToDelete - value.length
         console.log(
-          `temp: ${temp} numVersions: ${input.numOldVersionsToDelete}`
+          `temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`
         )
         return value
-          .filter(info => !input.ignoreVersions.test(info.version))
+          .filter(info => input.ignoreVersions.test(info.version))
           .map(info => info.id)
           .slice(0, temp)
       })
