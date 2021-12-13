@@ -50,7 +50,7 @@ export class Input {
       this.numOldVersionsToDelete = 100 - this.minVersionsToKeep
     }
 
-    if (this.deletePreReleaseVersions == 'true') {
+    if (this.deletePreReleaseVersions === 'true') {
       this.numOldVersionsToDelete = 100 - this.minVersionsToKeep
       this.ignoreVersions = new RegExp('^(0|[1-9]\\d*)((\\.(0|[1-9]\\d*))*)$')
     }
