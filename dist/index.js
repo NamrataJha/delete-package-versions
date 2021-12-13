@@ -40,7 +40,10 @@ function finalIds(input) {
     if (input.hasOldestVersionQueryInfo()) {
         console.log(`in if`);
         return getVersionIds(input.owner, input.repo, input.packageName, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
-            return value.map(info => info.id).slice(0, input.numOldVersionsToDelete);
+            const temp = input.numOldVersionsToDelete;
+            input.numOldVersionsToDelete =
+                input.numOldVersionsToDelete - value.length;
+            return value.map(info => info.id).slice(0, temp);
         }));
     }
     return rxjs_1.throwError(`no package id found`);

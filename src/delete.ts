@@ -69,7 +69,10 @@ export function finalIds(input: Input): Observable<string[]> {
       input.token
     ).pipe(
       map(value => {
-        return value.map(info => info.id).slice(0, input.numOldVersionsToDelete)
+        const temp = input.numOldVersionsToDelete
+        input.numOldVersionsToDelete =
+          input.numOldVersionsToDelete - value.length
+        return value.map(info => info.id).slice(0, temp)
       })
     )
   }
