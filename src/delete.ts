@@ -38,7 +38,7 @@ export function getVersionIds(
             owner,
             repo,
             packageName,
-            numVersions - value.versions.length,
+            numVersions,
             ignoreVersions,
             value.cursor,
             token
@@ -59,7 +59,6 @@ export function finalIds(input: Input): Observable<string[]> {
     return of(input.packageVersionIds)
   }
   if (input.hasOldestVersionQueryInfo()) {
-    console.log(`in if`)
     return getVersionIds(
       input.owner,
       input.repo,

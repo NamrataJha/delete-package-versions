@@ -29,7 +29,7 @@ const version_1 = __nccwpck_require__(4428);
 const operators_1 = __nccwpck_require__(7801);
 function getVersionIds(owner, repo, packageName, numVersions, ignoreVersions, cursor, token) {
     return version_1.getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, cursor, token).pipe(operators_1.expand(value => value.paginate
-        ? version_1.getOldestVersions(owner, repo, packageName, numVersions - value.versions.length, ignoreVersions, value.cursor, token)
+        ? version_1.getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions, value.cursor, token)
         : rxjs_1.EMPTY), operators_1.map(value => value.versions), operators_1.tap(value => value.map(info => console.log(`id0: ${info.id}, version: ${info.version}`))));
 }
 exports.getVersionIds = getVersionIds;
@@ -38,7 +38,6 @@ function finalIds(input) {
         return rxjs_1.of(input.packageVersionIds);
     }
     if (input.hasOldestVersionQueryInfo()) {
-        console.log(`in if`);
         return getVersionIds(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
             const temp = input.numOldVersionsToDelete;
             input.numOldVersionsToDelete =
