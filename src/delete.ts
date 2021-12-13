@@ -72,7 +72,9 @@ export function finalIds(input: Input): Observable<string[]> {
       map(value => {
         const temp = input.numOldVersionsToDelete
         input.numOldVersionsToDelete =
-          input.numOldVersionsToDelete - value.length
+          input.numOldVersionsToDelete - value.length <= 0
+            ? 0
+            : input.numOldVersionsToDelete - value.length
         console.log(
           `temp: ${temp} numVersions: ${input.numOldVersionsToDelete}`
         )

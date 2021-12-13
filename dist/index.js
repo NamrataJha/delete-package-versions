@@ -42,7 +42,9 @@ function finalIds(input) {
         return getVersionIds(input.owner, input.repo, input.packageName, input.numOldVersionsToDelete, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
             const temp = input.numOldVersionsToDelete;
             input.numOldVersionsToDelete =
-                input.numOldVersionsToDelete - value.length;
+                input.numOldVersionsToDelete - value.length <= 0
+                    ? 0
+                    : input.numOldVersionsToDelete - value.length;
             console.log(`temp: ${temp} numVersions: ${input.numOldVersionsToDelete}`);
             return value.map(info => info.id).slice(0, temp);
         }));
