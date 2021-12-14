@@ -99,18 +99,18 @@ export function finalIds(input: Input): Observable<string[]> {
       ).pipe(
         map(value => {
           console.log(`point 1`)
-          const temp = totalCount - input.minVersionsToKeep
-          input.numOldVersionsToDelete =
-            input.numOldVersionsToDelete + value.length
+          const toDelete = totalCount - input.minVersionsToKeep
           console.log(
-            `temp: ${temp} numVersions: ${input.numOldVersionsToDelete} total count: ${totalCount}`
+            `toDelete: ${toDelete} numVersions: ${input.numOldVersionsToDelete} total count: ${totalCount}`
           )
-          if (temp > value.length) {
-            return temp - input.numOldVersionsToDelete > value.length
+          if (toDelete > input.numOldVersionsToDelete) {
+            input.numOldVersionsToDelete =
+              input.numOldVersionsToDelete + value.length
+            return toDelete - input.numOldVersionsToDelete >= 0
               ? value.map(info => info.id)
               : value
                   .map(info => info.id)
-                  .slice(0, input.numOldVersionsToDelete - temp)
+                  .slice(0, toDelete - input.numOldVersionsToDelete)
           } else return []
         })
       )
