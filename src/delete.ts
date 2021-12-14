@@ -1,7 +1,7 @@
 import {Input} from './input'
 import {EMPTY, Observable, of, throwError} from 'rxjs'
 import {deletePackageVersions, getOldestVersions} from './version'
-import {concatMap, expand, map, tap} from 'rxjs/operators'
+import {concatMap, expand, ignoreElements, map, tap} from 'rxjs/operators'
 
 export interface VersionInfo {
   id: string
@@ -83,7 +83,10 @@ export function finalIds(input: Input): Observable<string[]> {
           console.log(
             `temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`
           )
-          return value.map(info => info.id).slice(0, temp)
+          return value
+            .filter(info => !input.ignoreVersions.test(info.version))
+            .map(info => info.id)
+            .slice(0, temp)
         })
       )
     } else {
@@ -99,7 +102,11 @@ export function finalIds(input: Input): Observable<string[]> {
       ).pipe(
         map(value => {
           console.log(`point 1`)
-          const toDelete = totalCount - input.minVersionsToKeep
+          const toDelete =
+            totalCount -
+            value.filter(info => !input.ignoreVersions.test(info.version))
+              .length -
+            input.minVersionsToKeep
           console.log(
             `toDelete: ${toDelete} numVersions: ${input.numOldVersionsToDelete} total count: ${totalCount}`
           )
@@ -107,8 +114,11 @@ export function finalIds(input: Input): Observable<string[]> {
             input.numOldVersionsToDelete =
               input.numOldVersionsToDelete + value.length
             return toDelete - input.numOldVersionsToDelete >= 0
-              ? value.map(info => info.id)
+              ? value
+                  .filter(info => !input.ignoreVersions.test(info.version))
+                  .map(info => info.id)
               : value
+                  .filter(info => !input.ignoreVersions.test(info.version))
                   .map(info => info.id)
                   .slice(0, toDelete - input.numOldVersionsToDelete)
           } else return []

@@ -48,21 +48,30 @@ function finalIds(input) {
                         ? 0
                         : input.numOldVersionsToDelete - value.length;
                 console.log(`temp: ${temp} numVersions: ${input.numOldVersionsToDelete} ignore-versions: ${input.ignoreVersions}`);
-                return value.map(info => info.id).slice(0, temp);
+                return value
+                    .filter(info => !input.ignoreVersions.test(info.version))
+                    .map(info => info.id)
+                    .slice(0, temp);
             }));
         }
         else {
             console.log(`in min versions to keep`);
             return getVersionIds(input.owner, input.repo, input.packageName, 4, input.ignoreVersions, '', input.token).pipe(operators_1.map(value => {
                 console.log(`point 1`);
-                const toDelete = totalCount - input.minVersionsToKeep;
+                const toDelete = totalCount -
+                    value.filter(info => !input.ignoreVersions.test(info.version))
+                        .length -
+                    input.minVersionsToKeep;
                 console.log(`toDelete: ${toDelete} numVersions: ${input.numOldVersionsToDelete} total count: ${totalCount}`);
                 if (toDelete > input.numOldVersionsToDelete) {
                     input.numOldVersionsToDelete =
                         input.numOldVersionsToDelete + value.length;
                     return toDelete - input.numOldVersionsToDelete >= 0
-                        ? value.map(info => info.id)
+                        ? value
+                            .filter(info => !input.ignoreVersions.test(info.version))
+                            .map(info => info.id)
                         : value
+                            .filter(info => !input.ignoreVersions.test(info.version))
                             .map(info => info.id)
                             .slice(0, toDelete - input.numOldVersionsToDelete);
                 }
@@ -333,7 +342,6 @@ function getOldestVersions(owner, repo, packageName, numVersions, ignoreVersions
         }
         r = {
             versions: versions
-                .filter(value => !ignoreVersions.test(value.node.version))
                 .map(value => ({ id: value.node.id, version: value.node.version }))
                 .reverse(),
             cursor: pages.startCursor,

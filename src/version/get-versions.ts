@@ -215,7 +215,6 @@ export function getOldestVersions(
 
       r = {
         versions: versions
-          .filter(value => !ignoreVersions.test(value.node.version))
           .map(value => ({id: value.node.id, version: value.node.version}))
           .reverse(),
         cursor: pages.startCursor,
