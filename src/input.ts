@@ -46,22 +46,25 @@ export class Input {
     this.deletePreReleaseVersions = validatedParams.deletePreReleaseVersions
     this.token = validatedParams.token
 
+    console.log(`in input`)
     if (this.minVersionsToKeep > 0) {
-      this.numOldVersionsToDelete = 100 - this.minVersionsToKeep
+      console.log(`updated due to min versions to keep`)
+      this.numOldVersionsToDelete = 0
     }
 
-    if (this.deletePreReleaseVersions == 'true') {
+    if (this.deletePreReleaseVersions === 'true') {
       this.numOldVersionsToDelete = 100 - this.minVersionsToKeep
       this.ignoreVersions = new RegExp('^(0|[1-9]\\d*)((\\.(0|[1-9]\\d*))*)$')
     }
   }
 
   hasOldestVersionQueryInfo(): boolean {
+    console.log(`checking query info`)
     return !!(
       this.owner &&
       this.repo &&
       this.packageName &&
-      this.numOldVersionsToDelete > 0 &&
+      this.numOldVersionsToDelete >= 0 &&
       this.minVersionsToKeep >= 0 &&
       this.token
     )
