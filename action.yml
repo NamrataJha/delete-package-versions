@@ -21,12 +21,6 @@ inputs:
       Defaults to the repo running the action.
     required: false
 
-  package-name:
-    description: >
-      Name of the package containing the version to delete.
-      Required if dynamically deleting oldest versions.
-    required: false
-
   num-old-versions-to-delete:
     description: >
       Number of versions to delete starting with the oldest version.
